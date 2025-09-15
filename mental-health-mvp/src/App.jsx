@@ -6,6 +6,7 @@ import { getAuth, onAuthStateChanged, signInWithCustomToken, signInAnonymously }
 import { getFirestore, collection, addDoc, onSnapshot } from "firebase/firestore";
 import { useTranslation } from 'react-i18next';
 import ResourceHub from './ResourceHub';
+import AdminDashboard from './AdminDashboard';
 
 // Initialize the Generative AI API
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
@@ -13,9 +14,10 @@ const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
 // View constants for better readability
 const VIEW_CHAT = 'chat';
 const VIEW_RESOURCES = 'resources';
+const VIEW_ADMIN = 'admin';
 
 function App() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   
@@ -295,16 +297,65 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-start p-4">
+      {/* Global Header with Navigation and Language Selector */}
+      <div className="w-full max-w-6xl mb-6">
+        <div className="flex justify-between items-center bg-white rounded-lg shadow-md p-4">
+          {/* Navigation Buttons */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => setCurrentView(VIEW_CHAT)}
+              className={`px-4 py-2 rounded transition-colors ${
+                currentView === VIEW_CHAT 
+                  ? 'bg-blue-600 text-white' 
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              {t('chat_tab_button')}
+            </button>
+            <button
+              onClick={() => setCurrentView(VIEW_RESOURCES)}
+              className={`px-4 py-2 rounded transition-colors ${
+                currentView === VIEW_RESOURCES 
+                  ? 'bg-blue-600 text-white' 
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              {t('resources_tab_button')}
+            </button>
+            <button
+              onClick={() => setCurrentView(VIEW_ADMIN)}
+              className={`px-4 py-2 rounded transition-colors ${
+                currentView === VIEW_ADMIN 
+                  ? 'bg-blue-600 text-white' 
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              {t('admin_tab_button')}
+            </button>
+          </div>
+          
+          {/* Global Language Selector */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-600">{t('language_label')}</span>
+            <select 
+              value={i18n.language} 
+              onChange={(e) => i18n.changeLanguage(e.target.value)}
+              className="px-3 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+            >
+              <option value="en">English</option>
+              <option value="hi">हिंदी (Hindi)</option>
+              <option value="bn">বাংলা (Bengali)</option>
+              <option value="te">తెలుగు (Telugu)</option>
+              <option value="mr">मराठी (Marathi)</option>
+              <option value="ta">தமிழ் (Tamil)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
       {/* Chat Interface - conditional rendering */}
       {currentView === VIEW_CHAT && (
         <>
-          {/* Navigation button to Resource Hub - only visible on chat page */}
-          <button
-            onClick={() => setCurrentView(VIEW_RESOURCES)}
-            className="mb-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
-          >
-            {t('go_to_resources_button')}
-          </button>
           
           <div className="max-w-lg w-full bg-white shadow-md rounded-lg overflow-hidden mb-6">
         <div className="bg-blue-600 p-4">
@@ -353,7 +404,7 @@ function App() {
         </div>
       </div>
 
-      {/* Booking button & status */}
+      {/* Booking button */}
       <div className="max-w-lg w-full flex flex-col items-stretch">
         <button
           onClick={() => setIsBookingModalOpen(true)}
@@ -400,16 +451,14 @@ function App() {
       {/* Resource Hub - conditional rendering */}
       {currentView === VIEW_RESOURCES && (
         <div className="w-full">
-          {/* Back to Chat button - only visible on resource hub page */}
-          {currentView === VIEW_RESOURCES && (
-            <button
-              onClick={() => setCurrentView(VIEW_CHAT)}
-              className="mb-4 bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 transition-colors"
-            >
-              {t('back_to_chat_button')}
-            </button>
-          )}
           <ResourceHub />
+        </div>
+      )}
+
+      {/* Admin Dashboard - conditional rendering */}
+      {currentView === VIEW_ADMIN && (
+        <div className="w-full">
+          <AdminDashboard onBackToMain={() => setCurrentView(VIEW_CHAT)} />
         </div>
       )}
     </div>

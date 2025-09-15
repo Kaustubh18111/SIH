@@ -1,4 +1,13 @@
 {
+  "nav_chat": "చాట్",
+  "nav_resources": "వనరులు",
+  "nav_admin": "నిర్వాహకుడు",
+  "language_label": "భాష:",
+  "admin_button": "నిర్వాహకుడు",
+  "chat_tab_button": "చాట్",
+  "resources_tab_button": "వనరులు",
+  "admin_tab_button": "నిర్వాహకుడు",
+  "admin_dashboard_placeholder": "నిర్వాహక డాష్‌బోర్డ్ త్వరలో వస్తుంది!",
   "app_title": "మానసిక ఆరోగ్య చాట్‌బాట్",
   "app_subtitle": "మీ ఆలోచనలను పంచుకోవడానికి సురక్షితమైన స్థలం",
   "chat_placeholder": "మీ సందేశాన్ని ఇక్కడ టైప్ చేయండి...",
@@ -93,5 +102,32 @@
       "title": "సంక్షోభ వనరుల డైరెక్టరీ",
       "description": "మానసిక ఆరోగ్య సంక్షోభాలకు అత్యవసర పరిచయాలు మరియు వనరులు, హాట్‌లైన్లు మరియు స్థానిక సేవలతో సహా."
     }
-  }
+  },
+  
+  "admin_dashboard_title": "నిర్వాహక డాష్‌బోర్డ్",
+  "admin_dashboard_subtitle": "సిస్టమ్ వినియోగం మరియు వినియోగదారు విశ్లేషణలను పర్యవేక్షించండి",
+  "back_to_main_app_button": "ముఖ్య యాప్‌కు తిరిగి వెళ్లండి",
+  "problem_trends_title": "సమస్య పోకడలు",
+  "problem_trends_description": "ఈ చార్ట్ మానసిక ఆరోగ్య సమస్యల మాసిక పౌనఃపున్యాన్ని చూపిస్తుంది।",
+  "anxiety_label": "ఆందోళన",
+  "depression_label": "డిప్రెషన్",
+  "stress_label": "ఒత్తిడి",
+  "utilization_metrics_title": "సిస్టమ్ వినియోగ మెట్రిక్స్",
+  "total_bookings_label": "మొత్తం బుకింగ్‌లు",
+  "counselor_bookings_label": "కౌన్సెలర్ బుకింగ్‌లు",
+  "helpline_bookings_label": "హెల్ప్‌లైన్ బుకింగ్‌లు",
+  "total_users_label": "మొత్తం వినియోగదారులు",
+  "active_users_label": "క్రియాశీల వినియోగదారులు",
+  "resource_videos_title": "విద్యా వీడియోలు",
+  "resource_audio_title": "విశ్రాంతి ఆడియో",
+  "resource_guides_title": "వెల్‌నెస్ గైడ్‌లు",
+  "views_label": "వీక్షణలు",
+  "plays_label": "ప్లేలు",
+  "downloads_label": "డౌన్‌లోడ్‌లు",
+  "engagement_label": "నిమగ్నత",
+  "recent_activity_title": "ఇటీవలి కార్యకలాపం",
+  "sessions_today_label": "ఈరోజు సెషన్లు",
+  "resources_accessed_label": "యాక్సెస్ చేసిన వనరులు",
+  "user_satisfaction_label": "వినియోగదారు సంతృప్తి",
+  "new_users_today_label": "ఈరోజు కొత్త వినియోగదారులు"
 }

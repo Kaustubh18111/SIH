@@ -1,4 +1,13 @@
 {
+  "nav_chat": "চ্যাট",
+  "nav_resources": "সম্পদ",
+  "nav_admin": "প্রশাসক",
+  "language_label": "ভাষা:",
+  "admin_button": "প্রশাসক",
+  "chat_tab_button": "চ্যাট",
+  "resources_tab_button": "সম্পদ",
+  "admin_tab_button": "প্রশাসক",
+  "admin_dashboard_placeholder": "প্রশাসক ড্যাশবোর্ড শীঘ্রই আসছে!",
   "app_title": "মানসিক স্বাস্থ্য চ্যাটবট",
   "app_subtitle": "আপনার চিন্তাভাবনা শেয়ার করার জন্য একটি নিরাপদ স্থান",
   "chat_placeholder": "এখানে আপনার বার্তা লিখুন...",
@@ -93,5 +102,32 @@
       "title": "সংকট সম্পদ নির্দেশিকা",
       "description": "মানসিক স্বাস্থ্য সংকটের জন্য জরুরি যোগাযোগ এবং সম্পদ, হটলাইন এবং স্থানীয় সেবা সহ।"
     }
-  }
+  },
+  
+  "admin_dashboard_title": "প্রশাসক ড্যাশবোর্ড",
+  "admin_dashboard_subtitle": "সিস্টেম ব্যবহার এবং ব্যবহারকারী বিশ্লেষণ নিরীক্ষণ করুন",
+  "back_to_main_app_button": "মূল অ্যাপে ফিরে যান",
+  "problem_trends_title": "সমস্যার প্রবণতা",
+  "problem_trends_description": "এই চার্টটি মানসিক স্বাস্থ্য সমস্যার মাসিক ফ্রিকোয়েন্সি দেখায়।",
+  "anxiety_label": "উদ্বেগ",
+  "depression_label": "বিষণ্নতা",
+  "stress_label": "চাপ",
+  "utilization_metrics_title": "সিস্টেম ব্যবহার মেট্রিক্স",
+  "total_bookings_label": "মোট বুকিং",
+  "counselor_bookings_label": "কাউন্সেলর বুকিং",
+  "helpline_bookings_label": "হেল্পলাইন বুকিং",
+  "total_users_label": "মোট ব্যবহারকারী",
+  "active_users_label": "সক্রিয় ব্যবহারকারী",
+  "resource_videos_title": "শিক্ষামূলক ভিডিও",
+  "resource_audio_title": "শিথিল অডিও",
+  "resource_guides_title": "সুস্থতা গাইড",
+  "views_label": "দেখা",
+  "plays_label": "প্ল্যে",
+  "downloads_label": "ডাউনলোড",
+  "engagement_label": "সম্পৃক্ততা",
+  "recent_activity_title": "সাম্প্রতিক কার্যক্রম",
+  "sessions_today_label": "আজকের সেশন",
+  "resources_accessed_label": "অ্যাক্সেস করা সম্পদ",
+  "user_satisfaction_label": "ব্যবহারকারী সন্তুষ্টি",
+  "new_users_today_label": "আজ নতুন ব্যবহারকারী"
 }
