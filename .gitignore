@@ -1,0 +1,137 @@
+# Dependency directories
+node_modules/
+bower_components/
+vendor/
+venv/
+env/
+.env/
+
+# Build outputs
+dist/
+build/
+out/
+target/
+bin/
+obj/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Operating System files
+Thumbs.db
+.DS_Store
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Desktop.ini
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# Compiled binary addons
+*.node
+
+# Optional npm cache directory
+.npm
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Java
+*.class
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# C/C++
+*.o
+*.so
+*.a
+*.exe
+*.out
+*.app
+
+# Temporary files
+*.tmp
+*.temp
+*.cache
+*.backup
+*.old
+
+# Package files
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# Database files
+*.sqlite
+*.db
+*.sqlite3
+
+# Configuration files with sensitive data
+config.local.*
+secrets.json
+.secrets
