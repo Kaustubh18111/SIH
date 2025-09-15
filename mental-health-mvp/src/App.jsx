@@ -3,9 +3,9 @@ import Login from "./Login";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 // Firebase SDK imports
-import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth, onAuthStateChanged, signInWithCustomToken, signInAnonymously, signOut } from "firebase/auth";
-import { getFirestore, collection, addDoc, onSnapshot } from "firebase/firestore";
+import { onAuthStateChanged, signInWithCustomToken, signInAnonymously, signOut } from "firebase/auth";
+import { collection, addDoc, onSnapshot } from "firebase/firestore";
+import { auth, db, appId } from './firebase';
 import { useTranslation } from 'react-i18next';
 import ResourceHub from './ResourceHub';
 import AdminDashboard from './AdminDashboard';
@@ -25,34 +25,17 @@ function App() {
   const [user, setUser] = useState(null);
   // State variable to manage current view
   const [currentView, setCurrentView] = useState(VIEW_CHAT);
-
-  // ========================
-  // Firebase Setup & Auth
-  // ========================
-  // Globals provided by the host environment
-  const firebaseConfig = window.__firebase_config;
-  const initialAuthToken = window.__initial_auth_token;
-  const appId = firebaseConfig?.appId || "mental-health-mvp";
-
-  // Hold initialized services and current user id
-  const [db, setDb] = useState(null);
-  const [auth, setAuth] = useState(null);
   const [userId, setUserId] = useState(null);
 
   // One-time initialization for Firebase
   useEffect(() => {
-    if (!firebaseConfig) return;
-    const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-    const _db = getFirestore(app);
-    const _auth = getAuth(app);
-    setDb(_db);
-    setAuth(_auth);
     // Listen for auth state changes
-    const unsubscribe = onAuthStateChanged(_auth, async (firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
-      if (firebaseUser && _db) {
+      setUserId(firebaseUser ? firebaseUser.uid : null);
+      if (firebaseUser && db) {
         // Fetch chat history from Firestore
-        const chatDocRef = doc(_db, "chats", firebaseUser.uid);
+        const chatDocRef = doc(db, "chats", firebaseUser.uid);
         const chatDocSnap = await getDoc(chatDocRef);
         if (chatDocSnap.exists()) {
           setMessages(chatDocSnap.data().messages || []);
@@ -253,6 +236,7 @@ function App() {
           await setDoc(chatDocRef, { messages: updatedMessages }, { merge: true });
         }
       } catch (error) {
+        console.error('Gemini chatbot error:', error);
         let errorMessage = "I apologize, but I'm having trouble responding right now. Please try again.";
         if (error.message && error.message.includes('API key')) {
           errorMessage = "There seems to be an issue with the API configuration. Please check back soon.";

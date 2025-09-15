@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { auth } from './firebase';
 
 function Login({ setUser }) {
   const [email, setEmail] = useState('');
@@ -7,7 +8,6 @@ function Login({ setUser }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const auth = getAuth();
 
   const handleSignUp = async (e) => {
     e.preventDefault();
@@ -29,6 +29,19 @@ function Login({ setUser }) {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       setUser(userCredential.user);
+    } catch (err) {
+      setError(err.message);
+    }
+    setLoading(false);
+  };
+
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      setUser(result.user);
     } catch (err) {
       setError(err.message);
     }
@@ -84,6 +97,14 @@ function Login({ setUser }) {
             Login
           </button>
         </div>
+        <button
+          onClick={handleGoogleLogin}
+          className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 w-full mb-3"
+          disabled={loading}
+          type="button"
+        >
+          Continue with Google
+        </button>
         <button
           onClick={handleLogout}
           className="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500 w-full"
