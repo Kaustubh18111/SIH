@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 const ResourceHub = () => {
-  const { t } = use // Active tab state for navigation between resource types
+  const { t, i18n } = useTranslation(); // Active tab state for navigation between resource types
   const [activeTab, setActiveTab] = useState('videos');
   
   // Modal state for video player
