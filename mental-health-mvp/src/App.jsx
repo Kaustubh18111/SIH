@@ -4,7 +4,7 @@ import { doc, setDoc, getDoc } from "firebase/firestore";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 // Firebase SDK imports
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth, onAuthStateChanged, signInWithCustomToken, signInAnonymously } from "firebase/auth";
+import { getAuth, onAuthStateChanged, signInWithCustomToken, signInAnonymously, signOut } from "firebase/auth";
 import { getFirestore, collection, addDoc, onSnapshot } from "firebase/firestore";
 import { useTranslation } from 'react-i18next';
 import ResourceHub from './ResourceHub';
@@ -285,8 +285,150 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-start p-4">
-      {/* ...existing code... */}
+    <div className="min-h-screen bg-gray-100 flex flex-col">
+      {/* Header with title, navigation, language selector, and logout */}
+      <header className="w-full bg-white shadow">
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between">
+          {/* App Title */}
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800">{t('chatbot_title')}</h1>
+            <p className="text-sm text-gray-500">{t('chatbot_subtitle')}</p>
+          </div>
+
+          {/* Nav Buttons */}
+          <nav className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentView(VIEW_CHAT)}
+              className={`rounded px-4 py-2 text-sm font-medium transition-colors ${
+                currentView === VIEW_CHAT
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+              }`}
+            >
+              {t('nav_chat')}
+            </button>
+            <button
+              onClick={() => setCurrentView(VIEW_RESOURCES)}
+              className={`rounded px-4 py-2 text-sm font-medium transition-colors ${
+                currentView === VIEW_RESOURCES
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+              }`}
+            >
+              {t('nav_resources')}
+            </button>
+            <button
+              onClick={() => setCurrentView(VIEW_ADMIN)}
+              className={`rounded px-4 py-2 text-sm font-medium transition-colors ${
+                currentView === VIEW_ADMIN
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+              }`}
+            >
+              {t('nav_admin')}
+            </button>
+          </nav>
+
+          {/* Language + Logout */}
+          <div className="flex items-center gap-2">
+            <select
+              value={i18n.language}
+              onChange={(e) => i18n.changeLanguage(e.target.value)}
+              className="rounded border border-gray-300 px-3 py-2 text-sm"
+              aria-label={t('language_label')}
+            >
+              <option value="en">English</option>
+              <option value="hi">हिंदी (Hindi)</option>
+              <option value="bn">বাংলা (Bengali)</option>
+              <option value="te">తెలుగు (Telugu)</option>
+              <option value="mr">मराठी (Marathi)</option>
+              <option value="ta">தமிழ் (Tamil)</option>
+            </select>
+            <button
+              onClick={() => auth && signOut(auth).catch(() => {})}
+              className="rounded bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content Area */}
+      <main className="mx-auto w-full max-w-4xl flex-1 p-4">
+        {currentView === VIEW_CHAT && (
+          <section>
+            {/* Messages Display */}
+            <div className="h-[28rem] w-full overflow-y-auto rounded-lg bg-white p-4 shadow">
+              {messages.length === 0 ? (
+                <div className="flex h-full items-center justify-center text-gray-400">
+                  {t('loading_text')}
+                </div>
+              ) : (
+                <ul className="space-y-3">
+                  {messages.map((msg, idx) => (
+                    <li
+                      key={idx}
+                      className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                    >
+                      <div
+                        className={`max-w-[80%] rounded px-3 py-2 text-sm ${
+                          msg.sender === 'user'
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}
+                      >
+                        {msg.text}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            {/* Input and Actions */}
+            <form
+              className="mt-4 flex flex-col gap-3 sm:flex-row"
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSend();
+              }}
+            >
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyPress}
+                placeholder={t('chat_input_placeholder')}
+                className="flex-1 rounded border border-gray-300 px-3 py-2"
+              />
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  className="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+                >
+                  {t('chat_send_button')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsBookingModalOpen(true)}
+                  className="rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700"
+                >
+                  {t('book_session_button')}
+                </button>
+              </div>
+            </form>
+          </section>
+        )}
+
+        {currentView === VIEW_RESOURCES && <ResourceHub />}
+        {currentView === VIEW_ADMIN && (
+          <AdminDashboard onBackToMain={() => setCurrentView(VIEW_CHAT)} />
+        )}
+      </main>
+
+      {/* Booking Modal */}
+      {isBookingModalOpen && <BookingModal />}
     </div>
   );
 }
