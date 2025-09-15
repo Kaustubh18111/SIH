@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import Login from "./Login";
+import { doc, setDoc, getDoc } from "firebase/firestore";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 // Firebase SDK imports
 import { initializeApp, getApps, getApp } from "firebase/app";
@@ -20,7 +22,7 @@ function App() {
   const { t, i18n } = useTranslation();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
-  
+  const [user, setUser] = useState(null);
   // State variable to manage current view
   const [currentView, setCurrentView] = useState(VIEW_CHAT);
 
@@ -39,42 +41,29 @@ function App() {
 
   // One-time initialization for Firebase
   useEffect(() => {
-    if (!firebaseConfig) return; // If no config is provided, skip init
-
-    // Initialize (support HMR by reusing existing app)
+    if (!firebaseConfig) return;
     const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
     const _db = getFirestore(app);
     const _auth = getAuth(app);
     setDb(_db);
     setAuth(_auth);
-
-    // Auth flow: custom token if available, otherwise anonymous
-    const unsubscribe = onAuthStateChanged(_auth, async (user) => {
-      if (user) {
-        setUserId(user.uid);
-        return;
-      }
-      try {
-        if (initialAuthToken) {
-          const cred = await signInWithCustomToken(_auth, initialAuthToken);
-          setUserId(cred.user.uid);
+    // Listen for auth state changes
+    const unsubscribe = onAuthStateChanged(_auth, async (firebaseUser) => {
+      setUser(firebaseUser);
+      if (firebaseUser && _db) {
+        // Fetch chat history from Firestore
+        const chatDocRef = doc(_db, "chats", firebaseUser.uid);
+        const chatDocSnap = await getDoc(chatDocRef);
+        if (chatDocSnap.exists()) {
+          setMessages(chatDocSnap.data().messages || []);
         } else {
-          const anon = await signInAnonymously(_auth);
-          setUserId(anon.user.uid);
+          await setDoc(chatDocRef, { messages: [] });
+          setMessages([]);
         }
-      } catch (err) {
-        // Fallback to anonymous if custom token fails
-        try {
-          const anon = await signInAnonymously(_auth);
-          setUserId(anon.user.uid);
-        } catch (e) {
-          // Keep unauthenticated state; UI will remain read-only
-          // eslint-disable-next-line no-console
-          console.error("Firebase auth failed", e);
-        }
+      } else {
+        setMessages([]);
       }
     });
-
     return () => unsubscribe();
   }, []);
 
@@ -224,19 +213,18 @@ function App() {
   const handleSend = async () => {
     if (input.trim() !== "") {
       const userMessage = input;
-      setInput(""); // Clear input immediately for better UX
-      
+      setInput("");
       // Add user message to chat
-      setMessages(prev => [...prev, { text: userMessage, sender: "user" }]);
-      
+      const newMessages = [...messages, { text: userMessage, sender: "user" }];
+      setMessages(newMessages);
+      // Save to Firestore
+      if (db && user) {
+        const chatDocRef = doc(db, "chats", user.uid);
+        await setDoc(chatDocRef, { messages: newMessages }, { merge: true });
+      }
       try {
-        // Initialize the model
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-        
-        // Create a system prompt for mental health support
         const systemPrompt = "You are a compassionate mental health support chatbot. Provide empathetic, supportive, and helpful responses. Always encourage professional help when appropriate and never provide medical advice. Be kind, understanding, and non-judgmental.";
-        
-        // Start a chat session
         const chat = model.startChat({
           history: [
             {
@@ -255,23 +243,17 @@ function App() {
             maxOutputTokens: 1024,
           },
         });
-
-        // Send message and get response
         const result = await chat.sendMessage(userMessage);
-        console.log("API result:", result);
-        
         const text = result.response.text();
-        
-        setMessages(prev => [...prev, { 
-          text: text,
-          sender: "bot" 
-        }]);
+        const updatedMessages = [...newMessages, { text: text, sender: "bot" }];
+        setMessages(updatedMessages);
+        // Save updated chat to Firestore
+        if (db && user) {
+          const chatDocRef = doc(db, "chats", user.uid);
+          await setDoc(chatDocRef, { messages: updatedMessages }, { merge: true });
+        }
       } catch (error) {
-        console.error("Error details:", error);
-        
         let errorMessage = "I apologize, but I'm having trouble responding right now. Please try again.";
-        
-        // Provide more specific error messages based on the error type
         if (error.message && error.message.includes('API key')) {
           errorMessage = "There seems to be an issue with the API configuration. Please check back soon.";
         } else if (error.message && error.message.includes('quota')) {
@@ -279,11 +261,13 @@ function App() {
         } else if (error.message && error.message.includes('network') || error.name === 'NetworkError') {
           errorMessage = "I'm having trouble connecting right now. Please check your internet connection and try again.";
         }
-        
-        setMessages(prev => [...prev, { 
-          text: errorMessage, 
-          sender: "bot" 
-        }]);
+        const updatedMessages = [...newMessages, { text: errorMessage, sender: "bot" }];
+        setMessages(updatedMessages);
+        // Save error message to Firestore
+        if (db && user) {
+          const chatDocRef = doc(db, "chats", user.uid);
+          await setDoc(chatDocRef, { messages: updatedMessages }, { merge: true });
+        }
       }
     }
   };
@@ -295,172 +279,14 @@ function App() {
     }
   };
 
+  // Conditional rendering for authentication
+  if (!user) {
+    return <Login setUser={setUser} />;
+  }
+
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-start p-4">
-      {/* Global Header with Navigation and Language Selector */}
-      <div className="w-full max-w-6xl mb-6">
-        <div className="flex justify-between items-center bg-white rounded-lg shadow-md p-4">
-          {/* Navigation Buttons */}
-          <div className="flex gap-2">
-            <button
-              onClick={() => setCurrentView(VIEW_CHAT)}
-              className={`px-4 py-2 rounded transition-colors ${
-                currentView === VIEW_CHAT 
-                  ? 'bg-blue-600 text-white' 
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
-            >
-              {t('chat_tab_button')}
-            </button>
-            <button
-              onClick={() => setCurrentView(VIEW_RESOURCES)}
-              className={`px-4 py-2 rounded transition-colors ${
-                currentView === VIEW_RESOURCES 
-                  ? 'bg-blue-600 text-white' 
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
-            >
-              {t('resources_tab_button')}
-            </button>
-            <button
-              onClick={() => setCurrentView(VIEW_ADMIN)}
-              className={`px-4 py-2 rounded transition-colors ${
-                currentView === VIEW_ADMIN 
-                  ? 'bg-blue-600 text-white' 
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
-            >
-              {t('admin_tab_button')}
-            </button>
-          </div>
-          
-          {/* Global Language Selector */}
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">{t('language_label')}</span>
-            <select 
-              value={i18n.language} 
-              onChange={(e) => i18n.changeLanguage(e.target.value)}
-              className="px-3 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
-            >
-              <option value="en">English</option>
-              <option value="hi">हिंदी (Hindi)</option>
-              <option value="bn">বাংলা (Bengali)</option>
-              <option value="te">తెలుగు (Telugu)</option>
-              <option value="mr">मराठी (Marathi)</option>
-              <option value="ta">தமிழ் (Tamil)</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      {/* Chat Interface - conditional rendering */}
-      {currentView === VIEW_CHAT && (
-        <>
-          
-          <div className="max-w-lg w-full bg-white shadow-md rounded-lg overflow-hidden mb-6">
-        <div className="bg-blue-600 p-4">
-          <h1 className="text-xl font-semibold text-white">{t('chatbot_title')}</h1>
-          <p className="text-blue-100 text-sm">{t('chatbot_subtitle')}</p>
-        </div>
-        
-        <div className="flex flex-col h-[500px]">
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {messages.map((msg, index) => (
-              <div
-                key={index}
-                className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
-              >
-                <div
-                  className={`max-w-[80%] p-3 rounded-lg ${
-                    msg.sender === "user"
-                      ? "bg-blue-500 text-white rounded-br-none"
-                      : "bg-gray-100 text-gray-800 rounded-bl-none"
-                  }`}
-                >
-                  <p className="text-sm">{msg.text}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-          
-          <div className="border-t p-4">
-            <div className="flex space-x-2">
-              <textarea
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyPress={handleKeyPress}
-                className="flex-1 p-2 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder={t('chat_input_placeholder')}
-                rows="2"
-              />
-              <button
-                onClick={handleSend}
-                className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                {t('chat_send_button')}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Booking button */}
-      <div className="max-w-lg w-full flex flex-col items-stretch">
-        <button
-          onClick={() => setIsBookingModalOpen(true)}
-          className="mb-3 rounded-lg bg-green-600 px-6 py-3 font-medium text-white shadow hover:bg-green-700"
-        >
-          {t('book_session_button')}
-        </button>
-
-        {bookingStatus && (
-          <div className="mb-4 rounded border border-blue-200 bg-blue-50 px-4 py-2 text-blue-800">
-            {bookingStatus}
-          </div>
-        )}
-
-        {/* Upcoming bookings list */}
-        {bookings && bookings.length > 0 && (
-          <div className="rounded-lg bg-white p-4 shadow">
-            <h3 className="mb-2 text-lg font-semibold">{t('upcoming_bookings_title')}</h3>
-            <ul className="space-y-2">
-              {bookings
-                .filter((b) => (b.appointmentDate || "") >= new Date().toISOString().slice(0, 10))
-                .sort((a, b) => (a.appointmentDate || "").localeCompare(b.appointmentDate || ""))
-                .map((b) => (
-                  <li key={b.id} className="border-b pb-2 last:border-b-0">
-                    <div className="font-medium">{b.serviceType}</div>
-                    <div className="text-sm text-gray-600">
-                      {b.appointmentDate} at {b.appointmentTime}
-                    </div>
-                    {b.message && (
-                      <div className="mt-1 text-xs text-gray-500">{b.message}</div>
-                    )}
-                  </li>
-                ))}
-            </ul>
-          </div>
-        )}
-      </div>
-
-          {/* Booking modal */}
-          {isBookingModalOpen && <BookingModal />}
-        </>
-      )}
-
-      {/* Resource Hub - conditional rendering */}
-      {currentView === VIEW_RESOURCES && (
-        <div className="w-full">
-          <ResourceHub />
-        </div>
-      )}
-
-      {/* Admin Dashboard - conditional rendering */}
-      {currentView === VIEW_ADMIN && (
-        <div className="w-full">
-          <AdminDashboard onBackToMain={() => setCurrentView(VIEW_CHAT)} />
-        </div>
-      )}
+      {/* ...existing code... */}
     </div>
   );
 }
