@@ -53,6 +53,9 @@ function App() {
   const [note, setNote] = useState("");
   const [bookingStatus, setBookingStatus] = useState("");
   const [bookings, setBookings] = useState([]);
+  const [isSubmittingBooking, setIsSubmittingBooking] = useState(false);
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [successBookingDetails, setSuccessBookingDetails] = useState(null);
 
   const timeSlots = [
     "9:00 AM", "10:00 AM", "11:00 AM", "12:00 PM",
@@ -61,40 +64,112 @@ function App() {
 
   useEffect(() => {
     if (!db || !userId) return;
-    const bookingsRef = collection(db, `artifacts/${appId}/users/${userId}/bookings`);
-    const unsub = onSnapshot(bookingsRef, (snap) => {
-      const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      setBookings(items);
+    const chatDocRef = doc(db, "chats", userId);
+    const unsub = onSnapshot(chatDocRef, (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        setBookings(data.bookings || []);
+      } else {
+        setBookings([]);
+      }
     });
     return () => unsub();
   }, [db, userId]);
 
   const handleBookingSubmit = async (e) => {
     e.preventDefault();
-    if (!db || !userId) {
-      setBookingStatus("Unable to book right now. Please try again shortly.");
+    console.log("=== BOOKING SUBMISSION START ===");
+    console.log("Form data:", { serviceType, appointmentDate, appointmentTime, note });
+    console.log("Firebase state:", { db: !!db, userId, appId });
+    
+    // Safety timeout to reset loading state after 10 seconds
+    const timeoutId = setTimeout(() => {
+      console.log("TIMEOUT: Resetting loading state");
+      setIsSubmittingBooking(false);
+      setBookingStatus("Request timed out. Please try again.");
+      setTimeout(() => setBookingStatus(""), 5000);
+    }, 10000);
+    
+    if (!db || !userId || !appId) {
+      console.log("VALIDATION FAILED: Missing required Firebase data");
+      clearTimeout(timeoutId);
       return;
     }
-    setBookingStatus("");
+    
+    setIsSubmittingBooking(true);
+    
+    // Check online status
+    if (!navigator.onLine) {
+      console.log("NETWORK: User appears to be offline");
+      clearTimeout(timeoutId);
+      setIsSubmittingBooking(false);
+      return;
+    }
+    
     try {
-      const bookingsRef = collection(db, `artifacts/${appId}/users/${userId}/bookings`);
-      await addDoc(bookingsRef, {
+      console.log("FIREBASE: Attempting to save to Firestore...");
+      console.log("NETWORK: Online status =", navigator.onLine);
+      
+      // Use the EXACT same path as chat messages which we know works
+      const chatDocRef = doc(db, "chats", userId);
+      console.log("FIREBASE: Using existing chats document = chats/" + userId);
+      
+      const newBooking = {
+        id: Date.now().toString(),
         serviceType,
         appointmentDate,
         appointmentTime,
         message: note,
         createdAt: new Date().toISOString(),
-      });
+      };
+      console.log("FIREBASE: New booking data =", newBooking);
+      
+      // Get existing chat document
+      const chatDocSnap = await getDoc(chatDocRef);
+      const existingData = chatDocSnap.exists() ? chatDocSnap.data() : {};
+      const existingBookings = existingData.bookings || [];
+      
+      // Add new booking to array
+      const updatedBookings = [...existingBookings, newBooking];
+      
+      // Save updated bookings array to the same document as chat messages
+      await setDoc(chatDocRef, { 
+        ...existingData,
+        bookings: updatedBookings 
+      }, { merge: true });
+      
+      console.log("SUCCESS: Booking saved with ID:", newBooking.id);
+      clearTimeout(timeoutId);
       setIsBookingModalOpen(false);
-      setBookingStatus("Your session has been booked confidentially.");
+      
+      // Store booking details for success popup
+      setSuccessBookingDetails({
+        ...newBooking,
+        counselorName: serviceType === 'counselor' ? 'Prince Vaishnav' : 'Helpline Support',
+        counselorContact: serviceType === 'counselor' ? '9699190093' : 'N/A'
+      });
+      setShowSuccessPopup(true);
+      
+      // Clear form
       setServiceType("");
       setAppointmentDate("");
       setAppointmentTime("");
       setNote("");
+      
     } catch (err) {
-      console.error("Booking error:", err);
-      setBookingStatus("Error booking session. Please try again.");
+      console.error("ERROR: Booking submission failed");
+      console.error("Error details:", err);
+      console.error("Error message:", err?.message || "Unknown error");
+      console.error("Error code:", err?.code || "No code");
+      clearTimeout(timeoutId);
+      
+      // Error handling can be enhanced here if needed
+      console.log("Booking failed - user will see loading stop");
     }
+    
+    console.log("CLEANUP: Resetting loading state");
+    setIsSubmittingBooking(false);
+    console.log("=== BOOKING SUBMISSION END ===");
   };
 
   const BookingModal = () => (
@@ -102,8 +177,132 @@ function App() {
       <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
         <h2 className="mb-4 text-center text-2xl font-bold">{t('booking_modal_title')}</h2>
         <form onSubmit={handleBookingSubmit} className="space-y-4">
-          {/* Form fields... */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('service_type_label')}</label>
+            <select
+              value={serviceType}
+              onChange={(e) => setServiceType(e.target.value)}
+              required
+              className="w-full rounded border border-gray-300 px-3 py-2"
+            >
+              <option value="">{t('service_type_placeholder')}</option>
+              <option value="counselor">{t('service_counselor')}</option>
+              <option value="helpline">{t('service_helpline')}</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('date_label')}</label>
+            <input
+              type="date"
+              value={appointmentDate}
+              onChange={(e) => setAppointmentDate(e.target.value)}
+              required
+              className="w-full rounded border border-gray-300 px-3 py-2"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('time_label')}</label>
+            <select
+              value={appointmentTime}
+              onChange={(e) => setAppointmentTime(e.target.value)}
+              required
+              className="w-full rounded border border-gray-300 px-3 py-2"
+            >
+              <option value="">{t('time_placeholder')}</option>
+              {timeSlots.map((slot) => (
+                <option key={slot} value={slot}>{slot}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('message_label')}</label>
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder={t('message_placeholder')}
+              rows={3}
+              className="w-full rounded border border-gray-300 px-3 py-2"
+            />
+          </div>
+          <div className="flex gap-3">
+            <button
+              type="submit"
+              disabled={isSubmittingBooking}
+              className={`flex-1 rounded px-4 py-2 text-white ${
+                isSubmittingBooking 
+                  ? 'bg-gray-400 cursor-not-allowed' 
+                  : 'bg-green-600 hover:bg-green-700'
+              }`}
+            >
+              {isSubmittingBooking ? 'Submitting...' : t('submit_button')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsBookingModalOpen(false)}
+              disabled={isSubmittingBooking}
+              className={`rounded px-4 py-2 ${
+                isSubmittingBooking
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+              }`}
+            >
+              {t('cancel_button')}
+            </button>
+          </div>
         </form>
+      </div>
+    </div>
+  );
+
+  const SuccessPopup = () => (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+      <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+        <div className="text-center mb-6">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
+            <svg className="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+          </div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Booking Successful!</h2>
+          <p className="text-gray-600">Your confidential session has been scheduled.</p>
+        </div>
+        
+        {successBookingDetails && (
+          <div className="space-y-4 mb-6">
+            <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+              <div className="flex justify-between">
+                <span className="font-medium text-gray-700">Service:</span>
+                <span className="text-gray-900">{successBookingDetails.serviceType === 'counselor' ? 'On-campus Counselor' : 'Mental Health Helpline'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-medium text-gray-700">Date:</span>
+                <span className="text-gray-900">{successBookingDetails.appointmentDate}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-medium text-gray-700">Time:</span>
+                <span className="text-gray-900">{successBookingDetails.appointmentTime}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-medium text-gray-700">Counselor:</span>
+                <span className="text-gray-900">{successBookingDetails.counselorName}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-medium text-gray-700">Contact:</span>
+                <span className="text-gray-900">{successBookingDetails.counselorContact}</span>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        <button
+          onClick={() => {
+            setShowSuccessPopup(false);
+            setSuccessBookingDetails(null);
+          }}
+          className="w-full rounded bg-green-600 px-4 py-2 text-white font-medium hover:bg-green-700"
+        >
+          Done
+        </button>
       </div>
     </div>
   );
@@ -246,6 +445,7 @@ function App() {
         {currentView === VIEW_ADMIN && <AdminDashboard onBackToMain={() => setCurrentView(VIEW_CHAT)} />}
       </main>
       {isBookingModalOpen && <BookingModal />}
+      {showSuccessPopup && <SuccessPopup />}
     </div>
   );
 }
