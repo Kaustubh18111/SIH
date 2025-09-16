@@ -1,8 +1,12 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
-import { FiHome, FiBarChart2, FiCheckSquare, FiBookOpen, FiUsers, FiSettings, FiLogOut } from 'react-icons/fi';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { FiHome, FiBarChart2, FiCheckSquare, FiBookOpen, FiUsers, FiSettings, FiLogOut, FiMic } from 'react-icons/fi';
+import { signOut } from 'firebase/auth';
+import { auth } from './firebase';
 
 const Sidebar = () => {
+  const navigate = useNavigate();
+  
   const navigationLinks = [
     { path: '/admin', icon: FiHome, label: 'Dashboard' },
     { path: '/assess', icon: FiBarChart2, label: 'Assess' },
@@ -11,6 +15,15 @@ const Sidebar = () => {
     { path: '/community', icon: FiUsers, label: 'Community' },
     { path: '/settings', icon: FiSettings, label: 'Settings' },
   ];
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      navigate('/login');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
 
   return (
     <div className="fixed left-0 top-0 h-screen w-64 bg-gray-800 text-white flex flex-col">
@@ -23,6 +36,23 @@ const Sidebar = () => {
       {/* Navigation Links */}
       <nav className="flex-1 py-6">
         <ul className="space-y-2 px-4">
+          {/* Unmute AI Link */}
+          <li>
+            <NavLink
+              to="/unmute-ai"
+              className={({ isActive }) =>
+                `flex items-center px-4 py-3 rounded-lg transition-colors duration-200 ${
+                  isActive
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                }`
+              }
+            >
+              <FiMic className="w-5 h-5 mr-3" />
+              Unmute AI
+            </NavLink>
+          </li>
+          
           {navigationLinks.map((link) => {
             const IconComponent = link.icon;
             return (
@@ -57,7 +87,10 @@ const Sidebar = () => {
             <p className="text-xs text-gray-400">Administrator</p>
           </div>
         </div>
-        <button className="flex items-center w-full px-4 py-2 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg transition-colors duration-200">
+        <button 
+          onClick={handleLogout}
+          className="flex items-center w-full px-4 py-2 text-gray-300 hover:bg-gray-700 hover:text-white rounded-lg transition-colors duration-200"
+        >
           <FiLogOut className="w-4 h-4 mr-3" />
           Logout
         </button>

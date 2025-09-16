@@ -1,16 +1,17 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy } from "react";
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import Login from "./Login";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 // Firebase SDK imports
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import { collection, addDoc, onSnapshot } from "firebase/firestore";
+import { onSnapshot } from "firebase/firestore";
 import { auth, db, appId } from './firebase';
 import { useTranslation } from 'react-i18next';
-import ResourceHub from './ResourceHub';
-import AdminDashboard from './AdminDashboard';
 import Sidebar from './Sidebar';
+const ResourceHub = lazy(() => import('./ResourceHub'));
+const AdminDashboard = lazy(() => import('./AdminDashboard'));
+const UnmuteAiPage = lazy(() => import('./UnmuteAiPage'));
 
 // Initialize the Generative AI API
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
@@ -131,18 +132,6 @@ function App() {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
       setUserId(firebaseUser ? firebaseUser.uid : null);
-      if (firebaseUser && db) {
-        const chatDocRef = doc(db, "chats", firebaseUser.uid);
-        const chatDocSnap = await getDoc(chatDocRef);
-        if (chatDocSnap.exists()) {
-          setMessages(chatDocSnap.data().messages || []);
-        } else {
-          await setDoc(chatDocRef, { messages: [] });
-          setMessages([]);
-        }
-      } else {
-        setMessages([]);
-      }
     });
     return () => unsubscribe();
   }, []);
@@ -408,51 +397,9 @@ function App() {
     </div>
   );
 
-  const handleSend = async () => {
-    if (input.trim() !== "" && user) {
-      const userMessage = { text: input, sender: "user" };
-      const newMessages = [...messages, userMessage];
-      setMessages(newMessages); // Update the UI immediately
-      setInput("");
-  
-      // Use newMessages directly for the API call
-      const chatHistory = [
-        { role: "user", parts: [{ text: "You are a compassionate mental health support chatbot..." }] },
-        { role: "model", parts: [{ text: "I understand. How are you feeling today?" }] },
-        ...newMessages.map(msg => ({
-          role: msg.sender === 'user' ? 'user' : 'model',
-          parts: [{ text: msg.text }]
-        }))
-      ];
-      
-      try {
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-        const chat = model.startChat({ history: chatHistory });
-        const result = await chat.sendMessage(userMessage.text);
-        const response = await result.response;
-        const text = response.text();
-        
-        const botMessage = { text, sender: "bot" };
-        const finalMessages = [...newMessages, botMessage];
-        setMessages(finalMessages);
-  
-        if (db) {
-          const chatDocRef = doc(db, "chats", user.uid);
-          await setDoc(chatDocRef, { messages: finalMessages }, { merge: true });
-        }
-      } catch (error) {
-        console.error('Gemini chatbot error:', error);
-        // ... (error handling)
-      }
-    }
-  };
+  // Note: Chat handling is encapsulated in ChatInterface
 
-  const handleKeyPress = (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
+  // Note: Enter-to-send handling is implemented inside ChatInterface input.
 
   if (!user) {
     return (
@@ -507,6 +454,7 @@ function App() {
               <p className="text-gray-600">Coming soon...</p>
             </div>
           } />
+          <Route path="/unmute-ai" element={<UnmuteAiPage />} />
           <Route path="/settings" element={
             <div className="p-6">
               <h1 className="text-2xl font-bold text-gray-800 mb-4">Settings</h1>

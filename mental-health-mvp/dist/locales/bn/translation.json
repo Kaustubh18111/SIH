@@ -1,0 +1,133 @@
+{
+  "nav_chat": "চ্যাট",
+  "nav_resources": "সম্পদ",
+  "nav_admin": "প্রশাসক",
+  "language_label": "ভাষা:",
+  "admin_button": "প্রশাসক",
+  "chat_tab_button": "চ্যাট",
+  "resources_tab_button": "সম্পদ",
+  "admin_tab_button": "প্রশাসক",
+  "admin_dashboard_placeholder": "প্রশাসক ড্যাশবোর্ড শীঘ্রই আসছে!",
+  "app_title": "মানসিক স্বাস্থ্য চ্যাটবট",
+  "app_subtitle": "আপনার চিন্তাভাবনা শেয়ার করার জন্য একটি নিরাপদ স্থান",
+  "chat_placeholder": "এখানে আপনার বার্তা লিখুন...",
+  "chat_send_button": "পাঠান",
+  "resource_hub_button": "সম্পদ কেন্দ্রে যান",
+  "back_to_chat_button": "চ্যাটে ফিরে যান",
+  "book_session_button": "গোপনীয় সেশন বুক করুন",
+  
+  "resources_title": "মনোশিক্ষামূলক সম্পদ কেন্দ্র",
+  "resources_subtitle": "আপনার মানসিক স্বাস্থ্য যাত্রা সমর্থন করার জন্য ডিজাইন করা শিক্ষামূলক সম্পদের আমাদের বিস্তৃত সংগ্রহ অন্বেষণ করুন। মানসিক স্বাস্থ্য পেশাদারদের দ্বারা তৈরি ভিডিও, অডিও কন্টেন্ট এবং গাইড অ্যাক্সেস করুন।",
+  "resources_videos_tab": "ভিডিও",
+  "resources_audio_tab": "রিলাক্সেশন অডিও",
+  "resources_guides_tab": "সুস্থতা গাইড",
+  
+  "video_section_title": "শিক্ষামূলক ভিডিও",
+  "audio_section_title": "রিলাক্সেশন অডিও",
+  "guides_section_title": "মানসিক সুস্থতা গাইড",
+  
+  "download_guide_button": "গাইড ডাউনলোড করুন",
+  
+  "booking_modal_title": "একটি সেশন বুক করুন",
+  "booking_service_label": "সেবার ধরন",
+  "booking_service_placeholder": "একটি সেবা নির্বাচন করুন",
+  "booking_service_counselor": "ক্যাম্পাস কাউন্সেলর",
+  "booking_service_helpline": "মানসিক স্বাস্থ্য হেল্পলাইন",
+  "booking_date_label": "তারিখ",
+  "booking_time_label": "সময়",
+  "booking_time_placeholder": "একটি সময়ের স্লট নির্বাচন করুন",
+  "booking_message_label": "বার্তা (ঐচ্ছিক)",
+  "booking_message_placeholder": "কোনো বিবরণ বা অনুরোধ যোগ করুন...",
+  "booking_submit_button": "জমা দিন",
+  "booking_cancel_button": "বাতিল",
+  
+  "upcoming_bookings_title": "আপনার আগামী বুকিং",
+  
+  "sample_videos": {
+    "anxiety_guide": {
+      "title": "উদ্বেগ বোঝা: একটি শুরুর গাইড",
+      "description": "এই বিস্তৃত ১৫-মিনিটের ভিডিওতে উদ্বেগজনিত ব্যাধি এবং সাধারণ লক্ষণগুলির মূল বিষয়গুলি শিখুন।"
+    },
+    "mindfulness_meditation": {
+      "title": "স্ট্রেস রিলিফের জন্য মাইন্ডফুলনেস মেডিটেশন",
+      "description": "স্ট্রেস কমাতে এবং মানসিক স্বচ্ছতা উন্নত করতে একটি নির্দেশিত ধ্যান সেশন।"
+    },
+    "cbt_techniques": {
+      "title": "কগনিটিভ বিহেভিয়ারাল থেরাপি কৌশল",
+      "description": "নেতিবাচক চিন্তার ধরণ এবং আচরণ পরিচালনার জন্য CBT পদ্ধতির পরিচয়।"
+    },
+    "emotional_resilience": {
+      "title": "আবেগপ্রবণ স্থিতিস্থাপকতা গড়া",
+      "description": "আবেগপ্রবণ শক্তি বিকাশ এবং জীবনের চ্যালেঞ্জ মোকাবেলার কৌশল।"
+    }
+  },
+  
+  "sample_audio": {
+    "ocean_waves": {
+      "title": "সমুদ্রের ঢেউ রিলাক্সেশন",
+      "description": "গভীর শিথিলতা এবং স্ট্রেস রিলিফের জন্য শান্ত সমুদ্রের শব্দ। ধ্যান বা ঘুমের জন্য নিখুঁত।"
+    },
+    "muscle_relaxation": {
+      "title": "গাইডেড প্রগ্রেসিভ মাসল রিলাক্সেশন",
+      "description": "আপনার প্রতিটি পেশী গ্রুপকে নিয়মতান্ত্রিকভাবে আরাম দেওয়ার জন্য একটি ২০-মিনিটের গাইডেড সেশন।"
+    },
+    "forest_sounds": {
+      "title": "ফোকাসের জন্য বনের শব্দ",
+      "description": "একাগ্রতা উন্নত করতে এবং উদ্বেগ কমাতে প্রাকৃতিক বনের পরিবেশ।"
+    },
+    "breathing_exercise": {
+      "title": "শ্বাস ব্যায়াম অডিও গাইড",
+      "description": "প্যানিক অ্যাটাক এবং উদ্বেগ পরিচালনায় সহায়তার জন্য গাইডেড শ্বাস ব্যায়াম।"
+    }
+  },
+  
+  "sample_guides": {
+    "mental_health_first_aid": {
+      "title": "মানসিক স্বাস্থ্য প্রাথমিক চিকিৎসা গাইড",
+      "description": "মানসিক স্বাস্থ্য সমস্যার সম্মুখীন ব্যক্তিকে প্রাথমিক সহায়তা প্রদানের বিষয়ে বিস্তৃত গাইড।"
+    },
+    "stress_management": {
+      "title": "স্ট্রেস ম্যানেজমেন্ট ওয়ার্কবুক",
+      "description": "দৈনন্দিন জীবনে স্ট্রেস চিহ্নিতকরণ এবং পরিচালনার জন্য ইন্টারঅ্যাক্টিভ অনুশীলন এবং কৌশল।"
+    },
+    "sleep_hygiene": {
+      "title": "ঘুমের স্বাস্থ্যবিধি হ্যান্ডবুক",
+      "description": "ঘুমের মান উন্নত করা এবং স্বাস্থ্যকর ঘুমের ধরণ প্রতিষ্ঠার জন্য প্রমাণ-ভিত্তিক কৌশল।"
+    },
+    "mindfulness_journal": {
+      "title": "মাইন্ডফুলনেস প্র্যাকটিস জার্নাল",
+      "description": "মাইন্ডফুলনেস চর্চা বিকাশের জন্য প্রম্পট এবং অনুশীলন সহ একটি কাঠামোবদ্ধ জার্নাল।"
+    },
+    "crisis_resources": {
+      "title": "সংকট সম্পদ নির্দেশিকা",
+      "description": "মানসিক স্বাস্থ্য সংকটের জন্য জরুরি যোগাযোগ এবং সম্পদ, হটলাইন এবং স্থানীয় সেবা সহ।"
+    }
+  },
+  
+  "admin_dashboard_title": "প্রশাসক ড্যাশবোর্ড",
+  "admin_dashboard_subtitle": "সিস্টেম ব্যবহার এবং ব্যবহারকারী বিশ্লেষণ নিরীক্ষণ করুন",
+  "back_to_main_app_button": "মূল অ্যাপে ফিরে যান",
+  "problem_trends_title": "সমস্যার প্রবণতা",
+  "problem_trends_description": "এই চার্টটি মানসিক স্বাস্থ্য সমস্যার মাসিক ফ্রিকোয়েন্সি দেখায়।",
+  "anxiety_label": "উদ্বেগ",
+  "depression_label": "বিষণ্নতা",
+  "stress_label": "চাপ",
+  "utilization_metrics_title": "সিস্টেম ব্যবহার মেট্রিক্স",
+  "total_bookings_label": "মোট বুকিং",
+  "counselor_bookings_label": "কাউন্সেলর বুকিং",
+  "helpline_bookings_label": "হেল্পলাইন বুকিং",
+  "total_users_label": "মোট ব্যবহারকারী",
+  "active_users_label": "সক্রিয় ব্যবহারকারী",
+  "resource_videos_title": "শিক্ষামূলক ভিডিও",
+  "resource_audio_title": "শিথিল অডিও",
+  "resource_guides_title": "সুস্থতা গাইড",
+  "views_label": "দেখা",
+  "plays_label": "প্ল্যে",
+  "downloads_label": "ডাউনলোড",
+  "engagement_label": "সম্পৃক্ততা",
+  "recent_activity_title": "সাম্প্রতিক কার্যক্রম",
+  "sessions_today_label": "আজকের সেশন",
+  "resources_accessed_label": "অ্যাক্সেস করা সম্পদ",
+  "user_satisfaction_label": "ব্যবহারকারী সন্তুষ্টি",
+  "new_users_today_label": "আজ নতুন ব্যবহারকারী"
+}
