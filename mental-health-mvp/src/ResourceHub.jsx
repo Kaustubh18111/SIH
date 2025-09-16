@@ -13,31 +13,31 @@ const ResourceHub = () => {
   const videoResources = [
     {
       id: 1,
-      titleKey: "video_1_title",
-      descriptionKey: "video_1_description",
-      thumbnailUrl: "https://img.youtube.com/vi/WWloIAQpMcQ/maxresdefault.jpg",
-      youtubeLink: "https://www.youtube.com/embed/WWloIAQpMcQ"
+      titleKey: "sih_video_1_title",
+      descriptionKey: "sih_video_1_description",
+      thumbnailUrl: "https://img.youtube.com/vi/YfCsufJwW8w/maxresdefault.jpg",
+      youtubeLink: "https://www.youtube.com/embed/YfCsufJwW8w"
     },
     {
       id: 2,
-      titleKey: "video_2_title",
-      descriptionKey: "video_2_description",
-      thumbnailUrl: "https://img.youtube.com/vi/ZToicYcHIOU/maxresdefault.jpg",
-      youtubeLink: "https://www.youtube.com/embed/ZToicYcHIOU"
+      titleKey: "sih_video_2_title",
+      descriptionKey: "sih_video_2_description",
+      thumbnailUrl: "https://img.youtube.com/vi/qOOBXAUFTZk/maxresdefault.jpg",
+      youtubeLink: "https://www.youtube.com/embed/qOOBXAUFTZk"
     },
     {
       id: 3,
-      titleKey: "video_3_title",
-      descriptionKey: "video_3_description",
-      thumbnailUrl: "https://img.youtube.com/vi/0ViaCs0k2jM/maxresdefault.jpg",
-      youtubeLink: "https://www.youtube.com/embed/0ViaCs0k2jM"
+      titleKey: "sih_video_3_title",
+      descriptionKey: "sih_video_3_description",
+      thumbnailUrl: "https://img.youtube.com/vi/UlMlcRX7Us0/maxresdefault.jpg",
+      youtubeLink: "https://www.youtube.com/embed/UlMlcRX7Us0"
     },
     {
       id: 4,
-      titleKey: "video_4_title",
-      descriptionKey: "video_4_description",
-      thumbnailUrl: "https://img.youtube.com/vi/NWH8N-BvhAw/maxresdefault.jpg",
-      youtubeLink: "https://www.youtube.com/embed/NWH8N-BvhAw"
+      titleKey: "sih_video_4_title",
+      descriptionKey: "sih_video_4_description",
+      thumbnailUrl: "https://img.youtube.com/vi/jn1VGR32F0Q/maxresdefault.jpg",
+      youtubeLink: "https://www.youtube.com/embed/jn1VGR32F0Q"
     }
   ];
 
@@ -47,25 +47,25 @@ const ResourceHub = () => {
       id: 1,
       titleKey: "audio_1_title",
       descriptionKey: "audio_1_description",
-      filePath: "https://www.soundjay.com/misc/sounds/ocean-wave-1.wav"
+      filePath: "https://cdn.pixabay.com/download/audio/2022/10/18/audio_316a44c74e.mp3?filename=ocean-waves-122484.mp3"
     },
     {
       id: 2,
       titleKey: "audio_2_title",
       descriptionKey: "audio_2_description",
-      filePath: "https://www.soundjay.com/misc/sounds/rain-01.wav"
+      filePath: "https://cdn.pixabay.com/download/audio/2021/09/01/audio_a0a5209772.mp3?filename=progressive-muscle-relaxation-for-deep-sleep-and-anxiety-relief-8526.mp3"
     },
     {
       id: 3,
       titleKey: "audio_3_title",
       descriptionKey: "audio_3_description",
-      filePath: "https://www.soundjay.com/misc/sounds/forest-1.wav"
+      filePath: "https://cdn.pixabay.com/download/audio/2022/08/23/audio_82c6a1e538.mp3?filename=sounds-of-the-forest-12024.mp3"
     },
     {
       id: 4,
       titleKey: "audio_4_title",
       descriptionKey: "audio_4_description",
-      filePath: "https://www.soundjay.com/misc/sounds/wind-1.wav"
+      filePath: "https://cdn.pixabay.com/download/audio/2022/02/07/audio_c681816f5c.mp3?filename=calm-breathing-14138.mp3"
     }
   ];
 
@@ -210,7 +210,7 @@ const ResourceHub = () => {
           </div>
         )}
 
-        {/* Audio Section */}
+        {/* Audio Section - REPLACEMENT CODE */}
         {activeTab === 'audio' && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {audioResources.map((audio) => (
@@ -220,22 +220,15 @@ const ResourceHub = () => {
               >
                 <div className="flex items-center mb-4">
                   <div className="bg-indigo-100 p-3 rounded-full mr-4">
-                    <svg className="w-6 h-6 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM15.657 6.343a1 1 0 011.414 0A9.972 9.972 0 0119 12a9.972 9.972 0 01-1.929 5.657 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 12a7.971 7.971 0 00-1.343-4.243 1 1 0 010-1.414z" clipRule="evenodd" />
-                      <path fillRule="evenodd" d="M13.828 8.172a1 1 0 011.414 0A5.983 5.983 0 0116 12a5.983 5.983 0 01-.758 2.828 1 1 0 01-1.414-1.414A3.987 3.987 0 0014 12a3.987 3.987 0 00-.172-1.172 1 1 0 010-1.656z" clipRule="evenodd" />
-                    </svg>
+                    {/* SVG Icon */}
                   </div>
                   <div>
                     <h3 className="font-semibold text-lg text-gray-800">{t(audio.titleKey)}</h3>
                   </div>
                 </div>
                 <p className="text-gray-600 text-sm mb-4">{t(audio.descriptionKey)}</p>
-                <audio 
-                  controls 
-                  className="w-full"
-                  preload="metadata"
-                >
-                  <source src={audio.filePath} type="audio/wav" />
+                <audio controls className="w-full" preload="metadata">
+                  <source src={audio.filePath} type="audio/mpeg" />
                   Your browser does not support the audio element.
                 </audio>
               </div>
