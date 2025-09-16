@@ -11,7 +11,6 @@ import { useTranslation } from 'react-i18next';
 import Sidebar from './Sidebar';
 const ResourceHub = lazy(() => import('./ResourceHub'));
 const AdminDashboard = lazy(() => import('./AdminDashboard'));
-const UnmuteAiPage = lazy(() => import('./UnmuteAiPage'));
 
 // Initialize the Generative AI API
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
@@ -454,7 +453,6 @@ function App() {
               <p className="text-gray-600">Coming soon...</p>
             </div>
           } />
-          <Route path="/unmute-ai" element={<UnmuteAiPage />} />
           <Route path="/settings" element={
             <div className="p-6">
               <h1 className="text-2xl font-bold text-gray-800 mb-4">Settings</h1>

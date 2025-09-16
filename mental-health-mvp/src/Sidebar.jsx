@@ -39,7 +39,7 @@ const Sidebar = () => {
           {/* Unmute AI Link */}
           <li>
             <NavLink
-              to="/unmute-ai"
+              to="/"
               className={({ isActive }) =>
                 `flex items-center px-4 py-3 rounded-lg transition-colors duration-200 ${
                   isActive
