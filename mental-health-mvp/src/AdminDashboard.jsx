@@ -1,264 +1,196 @@
-import React, { useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import React from 'react';
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { FiUsers, FiClipboard, FiActivity, FiTrendingUp, FiSearch, FiBell, FiUser } from 'react-icons/fi';
 
-const AdminDashboard = ({ onBackToMain }) => {
-  const { t } = useTranslation();
+const AdminDashboard = ({ user, db }) => {
 
-  // Mock data for problem trends
-  const problemTrends = [
-    { month: 'Jan', anxiety: 45, depression: 32, stress: 38 },
-    { month: 'Feb', anxiety: 52, depression: 28, stress: 41 },
-    { month: 'Mar', anxiety: 48, depression: 35, stress: 44 },
-    { month: 'Apr', anxiety: 56, depression: 31, stress: 39 },
-    { month: 'May', anxiety: 49, depression: 29, stress: 42 },
-    { month: 'Jun', anxiety: 53, depression: 34, stress: 46 }
+  // Sample data for charts
+  const assessmentData = [
+    { name: 'Anxiety', value: 45 },
+    { name: 'Depression', value: 32 },
+    { name: 'Stress', value: 38 },
+    { name: 'PTSD', value: 25 },
+    { name: 'General', value: 18 }
   ];
 
-  // Mock data for utilization metrics
-  const utilizationMetrics = {
-    totalBookings: 247,
-    counselorBookings: 156,
-    helplineBookings: 91,
-    totalUsers: 1248,
-    activeUsers: 892
-  };
-
-  // Mock data for resource popularity
-  const resourcePopularity = [
-    { type: 'Videos', views: 1245, engagement: 78 },
-    { type: 'Audio', plays: 987, engagement: 82 },
-    { type: 'Guides', downloads: 654, engagement: 65 }
+  const userActivityData = [
+    { month: 'Jan', users: 120 },
+    { month: 'Feb', users: 150 },
+    { month: 'Mar', users: 180 },
+    { month: 'Apr', users: 220 },
+    { month: 'May', users: 200 },
+    { month: 'Jun', users: 250 }
   ];
 
-  // Simple bar chart component for problem trends
-  const SimpleBarChart = ({ data }) => {
-    const maxValue = Math.max(...data.map(item => Math.max(item.anxiety, item.depression, item.stress)));
-    
-    return (
-      <div className="space-y-4">
-        {data.map((item, index) => (
-          <div key={index} className="space-y-2">
-            <div className="text-sm font-medium text-gray-600">{item.month}</div>
-            <div className="space-y-1">
-              <div className="flex items-center space-x-2">
-                <div className="w-16 text-xs text-gray-500">{t('anxiety_label')}</div>
-                <div className="flex-1 bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-red-500 h-2 rounded-full" 
-                    style={{ width: `${(item.anxiety / maxValue) * 100}%` }}
-                  ></div>
-                </div>
-                <div className="text-xs text-gray-600 w-8">{item.anxiety}</div>
-              </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-16 text-xs text-gray-500">{t('depression_label')}</div>
-                <div className="flex-1 bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-blue-500 h-2 rounded-full" 
-                    style={{ width: `${(item.depression / maxValue) * 100}%` }}
-                  ></div>
-                </div>
-                <div className="text-xs text-gray-600 w-8">{item.depression}</div>
-              </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-16 text-xs text-gray-500">{t('stress_label')}</div>
-                <div className="flex-1 bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-yellow-500 h-2 rounded-full" 
-                    style={{ width: `${(item.stress / maxValue) * 100}%` }}
-                  ></div>
-                </div>
-                <div className="text-xs text-gray-600 w-8">{item.stress}</div>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  };
+  // Sample recent assessments data
+  const recentAssessments = [
+    { user: 'Anonymous User 1', assessment: 'Anxiety Scale', score: '15/21', date: '2025-09-15' },
+    { user: 'Anonymous User 2', assessment: 'Depression Inventory', score: '8/27', date: '2025-09-14' },
+    { user: 'Anonymous User 3', assessment: 'Stress Test', score: '12/20', date: '2025-09-14' },
+    { user: 'Anonymous User 4', assessment: 'General Wellness', score: '18/25', date: '2025-09-13' },
+    { user: 'Anonymous User 5', assessment: 'PTSD Checklist', score: '6/17', date: '2025-09-13' },
+    { user: 'Anonymous User 6', assessment: 'Anxiety Scale', score: '11/21', date: '2025-09-12' }
+  ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-blue-100 p-4">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-4xl font-bold text-gray-800 mb-2">
-              {t('admin_dashboard_title')}
-            </h1>
-            <p className="text-gray-600">
-              {t('admin_dashboard_subtitle')}
-            </p>
+    <div className="p-6">
+      {/* Header Section */}
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-800">Welcome back, Ananya!</h1>
+          <p className="text-gray-600 mt-1">Here's what's happening with your mental health platform today.</p>
+        </div>
+        <div className="flex items-center space-x-4">
+          {/* Search Bar */}
+          <div className="relative">
+            <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <input
+              type="text"
+              placeholder="Search..."
+              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
           </div>
-          <button
-            onClick={onBackToMain}
-            className="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors"
-          >
-            {t('back_to_main_app_button')}
+          {/* Notification Icon */}
+          <button className="p-2 text-gray-600 hover:text-gray-800 relative">
+            <FiBell className="w-6 h-6" />
+            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">3</span>
           </button>
-        </div>
-
-        {/* Dashboard Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          
-          {/* Problem Trends Card */}
-          <div className="lg:col-span-2 bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-2xl font-semibold text-gray-800 mb-4 flex items-center">
-              <div className="bg-red-100 p-2 rounded-full mr-3">
-                <svg className="w-6 h-6 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-              </div>
-              {t('problem_trends_title')}
-            </h2>
-            <div className="text-sm text-gray-600 mb-4">
-              {t('problem_trends_description')}
+          {/* User Avatar */}
+          <div className="flex items-center space-x-2">
+            <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+              <FiUser className="w-4 h-4 text-white" />
             </div>
-            <SimpleBarChart data={problemTrends} />
+            <span className="text-sm font-medium text-gray-700">Ananya</span>
           </div>
+        </div>
+      </div>
 
-          {/* Utilization Metrics Card */}
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-2xl font-semibold text-gray-800 mb-4 flex items-center">
-              <div className="bg-blue-100 p-2 rounded-full mr-3">
-                <svg className="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z" />
-                  <path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z" />
-                </svg>
-              </div>
-              {t('utilization_metrics_title')}
-            </h2>
-            <div className="space-y-4">
-              <div className="border-b pb-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">{t('total_bookings_label')}</span>
-                  <span className="text-2xl font-bold text-indigo-600">{utilizationMetrics.totalBookings}</span>
-                </div>
-              </div>
-              <div className="border-b pb-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">{t('counselor_bookings_label')}</span>
-                  <span className="text-xl font-semibold text-green-600">{utilizationMetrics.counselorBookings}</span>
-                </div>
-              </div>
-              <div className="border-b pb-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">{t('helpline_bookings_label')}</span>
-                  <span className="text-xl font-semibold text-orange-600">{utilizationMetrics.helplineBookings}</span>
-                </div>
-              </div>
-              <div className="border-b pb-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">{t('total_users_label')}</span>
-                  <span className="text-xl font-semibold text-purple-600">{utilizationMetrics.totalUsers}</span>
-                </div>
-              </div>
-              <div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">{t('active_users_label')}</span>
-                  <span className="text-xl font-semibold text-blue-600">{utilizationMetrics.activeUsers}</span>
-                </div>
-              </div>
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center">
+            <div className="p-3 rounded-full bg-blue-100">
+              <FiClipboard className="w-6 h-6 text-blue-600" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">Total Assessments</p>
+              <p className="text-2xl font-bold text-gray-900">1,248</p>
             </div>
           </div>
         </div>
 
-        {/* Resource Popularity Section */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {resourcePopularity.map((resource, index) => (
-            <div key={index} className="bg-white rounded-lg shadow-md p-6">
-              <div className="flex items-center mb-4">
-                <div className={`p-3 rounded-full mr-4 ${
-                  resource.type === 'Videos' ? 'bg-red-100' :
-                  resource.type === 'Audio' ? 'bg-green-100' : 'bg-blue-100'
-                }`}>
-                  {resource.type === 'Videos' && (
-                    <svg className="w-6 h-6 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm3 2h6v4H7V5zm8 8v2h1v-2h-1zm-2-2H7v4h6v-4z" clipRule="evenodd" />
-                    </svg>
-                  )}
-                  {resource.type === 'Audio' && (
-                    <svg className="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217z" clipRule="evenodd" />
-                    </svg>
-                  )}
-                  {resource.type === 'Guides' && (
-                    <svg className="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
-                    </svg>
-                  )}
-                </div>
-                <h3 className="text-lg font-semibold text-gray-800">
-                  {t(`resource_${resource.type.toLowerCase()}_title`)}
-                </h3>
-              </div>
-              
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">
-                    {resource.type === 'Videos' ? t('views_label') : 
-                     resource.type === 'Audio' ? t('plays_label') : t('downloads_label')}
-                  </span>
-                  <span className="font-semibold text-gray-800">
-                    {resource.type === 'Videos' ? resource.views : 
-                     resource.type === 'Audio' ? resource.plays : resource.downloads}
-                  </span>
-                </div>
-                
-                <div className="flex justify-between">
-                  <span className="text-gray-600">{t('engagement_label')}</span>
-                  <span className="font-semibold text-gray-800">{resource.engagement}%</span>
-                </div>
-                
-                <div className="mt-2">
-                  <div className="flex justify-between text-sm text-gray-500 mb-1">
-                    <span>{t('engagement_label')}</span>
-                    <span>{resource.engagement}%</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className={`h-2 rounded-full ${
-                        resource.type === 'Videos' ? 'bg-red-500' :
-                        resource.type === 'Audio' ? 'bg-green-500' : 'bg-blue-500'
-                      }`}
-                      style={{ width: `${resource.engagement}%` }}
-                    ></div>
-                  </div>
-                </div>
-              </div>
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center">
+            <div className="p-3 rounded-full bg-green-100">
+              <FiUsers className="w-6 h-6 text-green-600" />
             </div>
-          ))}
-        </div>
-
-        {/* Additional Stats Section */}
-        <div className="mt-8 bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-2xl font-semibold text-gray-800 mb-4 flex items-center">
-            <div className="bg-indigo-100 p-2 rounded-full mr-3">
-              <svg className="w-6 h-6 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
-              </svg>
-            </div>
-            {t('recent_activity_title')}
-          </h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="text-center p-4 bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg text-white">
-              <div className="text-3xl font-bold">24</div>
-              <div className="text-sm opacity-90">{t('sessions_today_label')}</div>
-            </div>
-            <div className="text-center p-4 bg-gradient-to-r from-green-500 to-green-600 rounded-lg text-white">
-              <div className="text-3xl font-bold">156</div>
-              <div className="text-sm opacity-90">{t('resources_accessed_label')}</div>
-            </div>
-            <div className="text-center p-4 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg text-white">
-              <div className="text-3xl font-bold">89%</div>
-              <div className="text-sm opacity-90">{t('user_satisfaction_label')}</div>
-            </div>
-            <div className="text-center p-4 bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg text-white">
-              <div className="text-3xl font-bold">12</div>
-              <div className="text-sm opacity-90">{t('new_users_today_label')}</div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">Total Users</p>
+              <p className="text-2xl font-bold text-gray-900">892</p>
             </div>
           </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center">
+            <div className="p-3 rounded-full bg-yellow-100">
+              <FiActivity className="w-6 h-6 text-yellow-600" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">Active Sessions</p>
+              <p className="text-2xl font-bold text-gray-900">24</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center">
+            <div className="p-3 rounded-full bg-purple-100">
+              <FiTrendingUp className="w-6 h-6 text-purple-600" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">Growth Rate</p>
+              <p className="text-2xl font-bold text-gray-900">+15%</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        {/* Bar Chart */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">Assessments by Category</h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={assessmentData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" />
+              <YAxis />
+              <Tooltip />
+              <Bar dataKey="value" fill="#3B82F6" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Line Chart */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">User Activity</h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={userActivityData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="month" />
+              <YAxis />
+              <Tooltip />
+              <Line type="monotone" dataKey="users" stroke="#10B981" strokeWidth={2} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Recent Activity Table */}
+      <div className="bg-white rounded-lg shadow">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-800">Recent Assessments</h3>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  User
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Assessment
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Score
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Date
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {recentAssessments.map((assessment, index) => (
+                <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    {assessment.user}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {assessment.assessment}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                      {assessment.score}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {assessment.date}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
