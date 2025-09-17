@@ -28,56 +28,117 @@ const ChatInterface = ({ user, db }) => {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [initialized, setInitialized] = useState(false);
   const chatContainerRef = useRef(null);
 
+  // Debug logs for component lifecycle
   useEffect(() => {
-    if (user && db) {
+    console.log('[ChatInterface] Component mounted');
+    console.log('[ChatInterface] Initial props:', { user: !!user, db: !!db });
+    return () => console.log('[ChatInterface] Component unmounted');
+  }, []);
+
+  // Effect to load and sync messages
+  useEffect(() => {
+    console.log('[ChatInterface] Setting up Firebase sync:', { user: !!user, db: !!db });
+    
+    if (user?.uid && db) {
       const chatDocRef = doc(db, "chats", user.uid);
+      console.log('[ChatInterface] Subscribing to:', user.uid);
+      
       const unsubscribe = onSnapshot(chatDocRef, (docSnap) => {
+        console.log('[ChatInterface] Received Firestore update:', {
+          exists: docSnap.exists(),
+          hasMessages: docSnap.exists() && Array.isArray(docSnap.data()?.messages),
+          messageCount: docSnap.exists() ? (docSnap.data()?.messages || []).length : 0
+        });
+
         if (docSnap.exists()) {
-          setMessages(docSnap.data().messages || []);
+          const newMessages = docSnap.data()?.messages || [];
+          setMessages(newMessages);
+          console.log('[ChatInterface] Updated messages:', { count: newMessages.length });
+        } else {
+          console.log('[ChatInterface] No chat document exists yet');
+          setMessages([]);
         }
+        // Mark as initialized after first data fetch
+        setInitialized(true);
+      }, (error) => {
+        console.error('[ChatInterface] Firestore error:', error);
+        setInitialized(true); // Still mark as initialized so UI can show error state
       });
-      return () => unsubscribe();
+
+      return () => {
+        console.log('[ChatInterface] Unsubscribing from Firestore');
+        unsubscribe();
+      };
+    } else {
+      console.log('[ChatInterface] Missing user or db, cannot subscribe');
+      setInitialized(true); // Mark as initialized even if we can't load
     }
-  }, [user, db]);
+  }, [user?.uid, db]);
 
   const handleSend = async () => {
-    if (input.trim() !== "" && user) {
+    console.log('[ChatInterface] handleSend called:', { input: input.length });
+    
+    if (!input.trim() || !user?.uid) {
+      console.log('[ChatInterface] Invalid send:', { hasInput: !!input.trim(), hasUser: !!user?.uid });
+      return;
+    }
+
+    try {
       const userMessage = { text: input, sender: "user" };
-      const newMessages = [...messages, userMessage];
+      console.log('[ChatInterface] Adding user message');
+      
+      // Update messages optimistically
+      const newMessages = [...(messages || []), userMessage];
       setMessages(newMessages);
       setInput("");
       setLoading(true);
 
-      try {
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-        const chat = model.startChat({
-          history: [
-            { role: "user", parts: [{ text: "You are a compassionate mental health support chatbot..." }] },
-            { role: "model", parts: [{ text: "I understand. How are you feeling today?" }] },
-            ...newMessages.map(msg => ({
-              role: msg.sender === 'user' ? 'user' : 'model',
-              parts: [{ text: msg.text }]
-            }))
-          ]
-        });
-        const result = await chat.sendMessage(userMessage.text);
-        const text = result.response.text();
-        
-        const botMessage = { text, sender: "bot" };
-        const finalMessages = [...newMessages, botMessage];
-        setMessages(finalMessages);
+      console.log('[ChatInterface] Initializing Gemini chat');
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const chat = model.startChat({
+        history: [
+          { role: "user", parts: [{ text: "You are a compassionate mental health support chatbot..." }] },
+          { role: "model", parts: [{ text: "I understand. How are you feeling today?" }] },
+          ...newMessages.map(msg => ({
+            role: msg.sender === 'user' ? 'user' : 'model',
+            parts: [{ text: msg.text }]
+          }))
+        ]
+      });
 
-        if (db) {
-          const chatDocRef = doc(db, "chats", user.uid);
-          await setDoc(chatDocRef, { messages: finalMessages }, { merge: true });
-        }
-      } catch (error) {
-        console.error('Gemini chatbot error:', error);
-      } finally {
-        setLoading(false);
+      console.log('[ChatInterface] Sending to Gemini');
+      const result = await chat.sendMessage(userMessage.text);
+      const text = result.response.text();
+      
+      console.log('[ChatInterface] Received Gemini response:', { length: text.length });
+      const botMessage = { text, sender: "bot" };
+      const finalMessages = [...newMessages, botMessage];
+
+      // Update Firestore first to ensure persistence
+      if (db && user?.uid) {
+        console.log('[ChatInterface] Saving to Firestore');
+        const chatDocRef = doc(db, "chats", user.uid);
+        await setDoc(chatDocRef, { messages: finalMessages }, { merge: true });
+        console.log('[ChatInterface] Firestore save complete');
       }
+
+      // Update local state last
+      console.log('[ChatInterface] Updating local messages');
+      setMessages(finalMessages);
+
+    } catch (error) {
+      console.error('[ChatInterface] Error in send flow:', error);
+      // Show error in UI
+      const errorMessage = { 
+        text: "Sorry, I encountered an error. Please try again.", 
+        sender: "bot" 
+      };
+      setMessages([...(messages || []), errorMessage]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -89,13 +150,36 @@ const ChatInterface = ({ user, db }) => {
   }, [messages, loading]);
 
   // Futuristic light-mode chat UI integrated with existing state
-  return (
-    <div className="h-full w-full flex flex-col p-4">
-      {/* Main container for chat, centers content */}
-      <div className="w-full max-w-4xl mx-auto h-full flex flex-col">
+  // Early loading state - show nothing until we've initialized
+  if (!initialized) {
+    console.log('[ChatInterface] Rendering initial loading state');
+    return (
+      <div className="h-full w-full flex items-center justify-center">
+        <div className="p-3 rounded-2xl bg-white border border-gray-200">
+          <div className="flex items-center space-x-2">
+            <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div>
+            <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse [animation-delay:0.2s]"></div>
+            <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse [animation-delay:0.4s]"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-        {/* Conditional Welcome Screen (uses your 'messages' state) */}
-        {messages.length === 0 && !loading && (
+  console.log('[ChatInterface] Rendering main UI:', {
+    messageCount: messages?.length,
+    loading,
+    initialized
+  });
+
+  // Render the chat interface
+  return (
+    <div className="h-full w-full flex flex-col p-4 overflow-hidden">
+      {/* Main container for chat, centers content */}
+      <div className="w-full max-w-4xl mx-auto h-full flex flex-col overflow-hidden">
+        
+        {/* Welcome screen - shown when no messages */}
+        {(!messages || messages.length === 0) && !loading ? (
           <div className="text-center my-auto">
             <h1 className="text-5xl font-bold bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-transparent bg-clip-text">
               Hello, {user?.displayName || 'there'}.
@@ -103,7 +187,6 @@ const ChatInterface = ({ user, db }) => {
             <p className="text-4xl font-semibold text-gray-400 mt-2">How can I help you today?</p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-12 text-left">
-              {/* Suggestion Cards that now set the input state */}
               <div onClick={() => setInput('Plan a trip to Mahabaleshwar')} className="bg-white p-4 rounded-xl border border-gray-200 cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
                 <p className="font-semibold text-gray-700">Plan a trip</p>
                 <p className="text-sm text-gray-500">to Mahabaleshwar</p>
@@ -114,15 +197,69 @@ const ChatInterface = ({ user, db }) => {
               </div>
             </div>
           </div>
+        ) : (
+          // Chat messages container
+          <div className="flex-1 overflow-y-auto space-y-4 pb-4" ref={chatContainerRef}>
+            {messages?.map((message, index) => {
+              // Extract message details safely
+              const sender = message?.sender;
+              const text = message?.text ?? message?.content ?? '';
+              const isUser = sender === 'user';
+              const isModel = sender === 'model' || sender === 'bot';
+              
+              // Debug message structure
+              console.log(`[ChatInterface] Rendering message ${index}:`, {
+                sender,
+                hasText: !!text,
+                length: text.length
+              });
+
+              return (
+                <div key={index} className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-xl p-3 rounded-2xl ${isUser ? 'bg-indigo-500 text-white' : 'bg-white border border-gray-200 text-gray-800'}`}>
+                    {isModel ? (
+                      <ReactMarkdown remarkPlugins={[remarkGfm]} className="prose max-w-none">
+                        {text}
+                      </ReactMarkdown>
+                    ) : (
+                      text
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+            
+            {/* Loading indicator */}
+            {loading && (
+              <div className="flex justify-start">
+                <div className="p-3 rounded-2xl bg-white border border-gray-200">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div>
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse [animation-delay:0.2s]"></div>
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse [animation-delay:0.4s]"></div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         )}
 
-        {/* Chat History (uses your 'messages' state) */}
+        {/* Chat History (uses messages state) */}
         <div className="flex-1 overflow-y-auto space-y-4 pb-4" ref={chatContainerRef}>
-          {Array.isArray(messages) && messages.map((message, index) => {
+          {messages && messages.length > 0 && messages.map((message, index) => {
+            // Extract message details safely
             const sender = message?.sender;
             const text = message?.text ?? message?.content ?? '';
             const isUser = sender === 'user';
             const isModel = sender === 'model' || sender === 'bot';
+            
+            // Debug message structure
+            console.log(`[ChatInterface] Rendering message ${index}:`, {
+              sender,
+              hasText: !!text,
+              length: text.length
+            });
+
             return (
               <div key={index} className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-xl p-3 rounded-2xl ${isUser ? 'bg-indigo-500 text-white' : 'bg-white border border-gray-200 text-gray-800'}`}>
@@ -152,31 +289,29 @@ const ChatInterface = ({ user, db }) => {
           )}
         </div>
 
-        {/* Chat Input Bar (wired to your state and handlers) */}
+        {/* Fixed chat input bar at bottom */}
         <div className="mt-auto pt-2">
-          <div className="relative">
-            <form onSubmit={(e) => { e.preventDefault(); handleSend(); }}>
-              <div className="flex items-center bg-white rounded-xl p-2 shadow-md border border-gray-200 transition-all duration-300 focus-within:ring-2 focus-within:ring-indigo-400">
-                <input
-                  type="text"
-                  className="w-full bg-transparent text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-0 px-3"
-                  placeholder="Message Unmute AI..."
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  disabled={loading}
-                />
-                <button
-                  type="submit"
-                  className="p-2 rounded-lg bg-indigo-500 text-white hover:bg-indigo-600 disabled:bg-gray-300 transition-colors"
-                  disabled={loading || !input.trim()}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5 12 3m0 0 7.5 7.5M12 3v18" />
-                  </svg>
-                </button>
-              </div>
-            </form>
-          </div>
+          <form onSubmit={(e) => { e.preventDefault(); handleSend(); }}>
+            <div className="flex items-center bg-white rounded-xl p-2 shadow-lg border border-gray-200 transition-all duration-300 focus-within:ring-2 focus-within:ring-indigo-400">
+              <input
+                type="text"
+                className="w-full bg-transparent text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-0 px-3"
+                placeholder="Message Unmute AI..."
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                disabled={loading || !initialized}
+              />
+              <button
+                type="submit"
+                className="p-2 rounded-lg bg-indigo-500 text-white hover:bg-indigo-600 disabled:bg-gray-300 transition-colors"
+                disabled={loading || !input.trim() || !initialized}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5 12 3m0 0 7.5 7.5M12 3v18" />
+                </svg>
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </div>
@@ -491,16 +626,16 @@ function App() {
       <DashboardLayout user={user}>
         <Routes>
           <Route path="/" element={
-            <div className="p-6">
-              <div className="mb-6">
+            <div className="flex-1 h-full">
+              <div className="mb-6 px-6">
                 <h1 className="text-2xl font-bold text-gray-800 mb-2">{t('chatbot_title')}</h1>
                 <p className="text-gray-600">{t('chatbot_subtitle')}</p>
               </div>
               <ChatInterface user={user} db={db} />
-              <div className="mt-6">
+              <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-10">
                 <button
                   onClick={() => setIsBookingModalOpen(true)}
-                  className="rounded bg-green-600 px-6 py-3 text-white font-medium hover:bg-green-700"
+                  className="rounded bg-green-600 px-6 py-3 text-white font-medium hover:bg-green-700 shadow-lg"
                 >
                   {t('book_session_button')}
                 </button>
