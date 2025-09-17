@@ -1,4 +1,6 @@
 import { useState, useEffect, lazy } from "react";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import Login from "./Login";
 import { doc, setDoc, getDoc } from "firebase/firestore";
@@ -25,6 +27,7 @@ const ChatInterface = ({ user, db }) => {
   const { t } = useTranslation();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (user && db) {
@@ -44,6 +47,7 @@ const ChatInterface = ({ user, db }) => {
       const newMessages = [...messages, userMessage];
       setMessages(newMessages);
       setInput("");
+      setLoading(true);
 
       try {
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
@@ -70,38 +74,96 @@ const ChatInterface = ({ user, db }) => {
         }
       } catch (error) {
         console.error('Gemini chatbot error:', error);
+      } finally {
+        setLoading(false);
       }
     }
   };
 
+  // Futuristic light-mode chat UI integrated with existing state
   return (
-    <div className="space-y-4">
-      <div className="h-[28rem] w-full overflow-y-auto rounded-lg bg-white p-4 shadow">
-        <ul className="space-y-3">
-          {messages.map((msg, idx) => (
-            <li key={idx} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[80%] rounded px-3 py-2 text-sm ${msg.sender === 'user' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-800'}`}>
-                {msg.text}
+    <div className="h-full w-full flex flex-col p-4">
+      {/* Main container for chat, centers content */}
+      <div className="w-full max-w-4xl mx-auto h-full flex flex-col">
+
+        {/* Conditional Welcome Screen (uses your 'messages' state) */}
+        {messages.length === 0 && !loading && (
+          <div className="text-center my-auto">
+            <h1 className="text-5xl font-bold bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-transparent bg-clip-text">
+              Hello, {user?.displayName || 'there'}.
+            </h1>
+            <p className="text-4xl font-semibold text-gray-400 mt-2">How can I help you today?</p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-12 text-left">
+              {/* Suggestion Cards that now set the input state */}
+              <div onClick={() => setInput('Plan a trip to Mahabaleshwar')} className="bg-white p-4 rounded-xl border border-gray-200 cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+                <p className="font-semibold text-gray-700">Plan a trip</p>
+                <p className="text-sm text-gray-500">to Mahabaleshwar</p>
               </div>
-            </li>
+              <div onClick={() => setInput('Write a short story about a robot who discovers music')} className="bg-white p-4 rounded-xl border border-gray-200 cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+                <p className="font-semibold text-gray-700">Write a short story</p>
+                <p className="text-sm text-gray-500">about a robot and music</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Chat History (uses your 'messages' state) */}
+        <div className="flex-1 overflow-y-auto space-y-4 pb-4">
+          {messages.map((message, index) => (
+            <div key={index} className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <div className={`max-w-xl p-3 rounded-2xl ${message.sender === 'user' ? 'bg-indigo-500 text-white' : 'bg-white border border-gray-200 text-gray-800'}`}>
+                {message.sender !== 'user' ? (
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} className="prose max-w-none">
+                    {message.text}
+                  </ReactMarkdown>
+                ) : (
+                  message.text
+                )}
+              </div>
+            </div>
           ))}
-        </ul>
-      </div>
-      <div className="flex gap-2">
-        <input 
-          type="text" 
-          value={input} 
-          onChange={(e) => setInput(e.target.value)} 
-          onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), handleSend())}
-          placeholder={t('chat_input_placeholder')} 
-          className="flex-1 rounded border border-gray-300 px-3 py-2"
-        />
-        <button 
-          onClick={handleSend}
-          className="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
-        >
-          {t('chat_send_button')}
-        </button>
+          
+          {/* Loading Indicator (uses your 'loading' state) */}
+          {loading && (
+            <div className="flex justify-start">
+              <div className="p-3 rounded-2xl bg-white border border-gray-200">
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div>
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse [animation-delay:0.2s]"></div>
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse [animation-delay:0.4s]"></div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Chat Input Bar (wired to your state and handlers) */}
+        <div className="mt-auto pt-2">
+          <div className="relative">
+            <form onSubmit={(e) => { e.preventDefault(); handleSend(); }}>
+              <div className="flex items-center bg-white rounded-xl p-2 shadow-md border border-gray-200 transition-all duration-300 focus-within:ring-2 focus-within:ring-indigo-400">
+                <input
+                  type="text"
+                  className="w-full bg-transparent text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-0 px-3"
+                  placeholder="Message Unmute AI..."
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  disabled={loading}
+                />
+                <button
+                  type="submit"
+                  className="p-2 rounded-lg bg-indigo-500 text-white hover:bg-indigo-600 disabled:bg-gray-300 transition-colors"
+                  disabled={loading || !input.trim()}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5 12 3m0 0 7.5 7.5M12 3v18" />
+                  </svg>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       </div>
     </div>
   );
