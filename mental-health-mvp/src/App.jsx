@@ -1,6 +1,4 @@
-import { useState, useEffect, useRef, lazy } from "react";
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { useState, useEffect, lazy } from "react";
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import Login from "./Login";
 import { doc, setDoc, getDoc } from "firebase/firestore";
@@ -27,292 +25,83 @@ const ChatInterface = ({ user, db }) => {
   const { t } = useTranslation();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [initialized, setInitialized] = useState(false);
-  const chatContainerRef = useRef(null);
 
-  // Debug logs for component lifecycle
   useEffect(() => {
-    console.log('[ChatInterface] Component mounted');
-    console.log('[ChatInterface] Initial props:', { user: !!user, db: !!db });
-    return () => console.log('[ChatInterface] Component unmounted');
-  }, []);
-
-  // Effect to load and sync messages
-  useEffect(() => {
-    console.log('[ChatInterface] Setting up Firebase sync:', { user: !!user, db: !!db });
-    
-    if (user?.uid && db) {
+    if (user && db) {
       const chatDocRef = doc(db, "chats", user.uid);
-      console.log('[ChatInterface] Subscribing to:', user.uid);
-      
       const unsubscribe = onSnapshot(chatDocRef, (docSnap) => {
-        console.log('[ChatInterface] Received Firestore update:', {
-          exists: docSnap.exists(),
-          hasMessages: docSnap.exists() && Array.isArray(docSnap.data()?.messages),
-          messageCount: docSnap.exists() ? (docSnap.data()?.messages || []).length : 0
-        });
-
         if (docSnap.exists()) {
-          const newMessages = docSnap.data()?.messages || [];
-          setMessages(newMessages);
-          console.log('[ChatInterface] Updated messages:', { count: newMessages.length });
-        } else {
-          console.log('[ChatInterface] No chat document exists yet');
-          setMessages([]);
+          setMessages(docSnap.data().messages || []);
         }
-        // Mark as initialized after first data fetch
-        setInitialized(true);
-      }, (error) => {
-        console.error('[ChatInterface] Firestore error:', error);
-        setInitialized(true); // Still mark as initialized so UI can show error state
       });
-
-      return () => {
-        console.log('[ChatInterface] Unsubscribing from Firestore');
-        unsubscribe();
-      };
-    } else {
-      console.log('[ChatInterface] Missing user or db, cannot subscribe');
-      setInitialized(true); // Mark as initialized even if we can't load
+      return () => unsubscribe();
     }
-  }, [user?.uid, db]);
+  }, [user, db]);
 
   const handleSend = async () => {
-    console.log('[ChatInterface] handleSend called:', { input: input.length });
-    
-    if (!input.trim() || !user?.uid) {
-      console.log('[ChatInterface] Invalid send:', { hasInput: !!input.trim(), hasUser: !!user?.uid });
-      return;
-    }
-
-    try {
+    if (input.trim() !== "" && user) {
       const userMessage = { text: input, sender: "user" };
-      console.log('[ChatInterface] Adding user message');
-      
-      // Update messages optimistically
-      const newMessages = [...(messages || []), userMessage];
+      const newMessages = [...messages, userMessage];
       setMessages(newMessages);
       setInput("");
-      setLoading(true);
 
-      console.log('[ChatInterface] Initializing Gemini chat');
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-      const chat = model.startChat({
-        history: [
-          { role: "user", parts: [{ text: "You are a compassionate mental health support chatbot..." }] },
-          { role: "model", parts: [{ text: "I understand. How are you feeling today?" }] },
-          ...newMessages.map(msg => ({
-            role: msg.sender === 'user' ? 'user' : 'model',
-            parts: [{ text: msg.text }]
-          }))
-        ]
-      });
+      try {
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const chat = model.startChat({
+          history: [
+            { role: "user", parts: [{ text: "You are a compassionate mental health support chatbot..." }] },
+            { role: "model", parts: [{ text: "I understand. How are you feeling today?" }] },
+            ...newMessages.map(msg => ({
+              role: msg.sender === 'user' ? 'user' : 'model',
+              parts: [{ text: msg.text }]
+            }))
+          ]
+        });
+        const result = await chat.sendMessage(userMessage.text);
+        const text = result.response.text();
+        
+        const botMessage = { text, sender: "bot" };
+        const finalMessages = [...newMessages, botMessage];
+        setMessages(finalMessages);
 
-      console.log('[ChatInterface] Sending to Gemini');
-      const result = await chat.sendMessage(userMessage.text);
-      const text = result.response.text();
-      
-      console.log('[ChatInterface] Received Gemini response:', { length: text.length });
-      const botMessage = { text, sender: "bot" };
-      const finalMessages = [...newMessages, botMessage];
-
-      // Update Firestore first to ensure persistence
-      if (db && user?.uid) {
-        console.log('[ChatInterface] Saving to Firestore');
-        const chatDocRef = doc(db, "chats", user.uid);
-        await setDoc(chatDocRef, { messages: finalMessages }, { merge: true });
-        console.log('[ChatInterface] Firestore save complete');
+        if (db) {
+          const chatDocRef = doc(db, "chats", user.uid);
+          await setDoc(chatDocRef, { messages: finalMessages }, { merge: true });
+        }
+      } catch (error) {
+        console.error('Gemini chatbot error:', error);
       }
-
-      // Update local state last
-      console.log('[ChatInterface] Updating local messages');
-      setMessages(finalMessages);
-
-    } catch (error) {
-      console.error('[ChatInterface] Error in send flow:', error);
-      // Show error in UI
-      const errorMessage = { 
-        text: "Sorry, I encountered an error. Please try again.", 
-        sender: "bot" 
-      };
-      setMessages([...(messages || []), errorMessage]);
-    } finally {
-      setLoading(false);
     }
   };
 
-  // Auto-scroll to bottom whenever messages or loading changes
-  useEffect(() => {
-    if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
-    }
-  }, [messages, loading]);
-
-  // Futuristic light-mode chat UI integrated with existing state
-  // Early loading state - show nothing until we've initialized
-  if (!initialized) {
-    console.log('[ChatInterface] Rendering initial loading state');
-    return (
-      <div className="h-full w-full flex items-center justify-center">
-        <div className="p-3 rounded-2xl bg-white border border-gray-200">
-          <div className="flex items-center space-x-2">
-            <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div>
-            <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse [animation-delay:0.2s]"></div>
-            <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse [animation-delay:0.4s]"></div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  console.log('[ChatInterface] Rendering main UI:', {
-    messageCount: messages?.length,
-    loading,
-    initialized
-  });
-
-  // Render the chat interface
   return (
-    <div className="h-full w-full flex flex-col p-4 overflow-hidden">
-      {/* Main container for chat, centers content */}
-      <div className="w-full max-w-4xl mx-auto h-full flex flex-col overflow-hidden">
-        
-        {/* Welcome screen - shown when no messages */}
-        {(!messages || messages.length === 0) && !loading ? (
-          <div className="text-center my-auto">
-            <h1 className="text-5xl font-bold bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-transparent bg-clip-text">
-              Hello, {user?.displayName || 'there'}.
-            </h1>
-            <p className="text-4xl font-semibold text-gray-400 mt-2">How can I help you today?</p>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-12 text-left">
-              <div onClick={() => setInput('Plan a trip to Mahabaleshwar')} className="bg-white p-4 rounded-xl border border-gray-200 cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
-                <p className="font-semibold text-gray-700">Plan a trip</p>
-                <p className="text-sm text-gray-500">to Mahabaleshwar</p>
+    <div className="space-y-4">
+      <div className="h-[28rem] w-full overflow-y-auto rounded-lg bg-white p-4 shadow">
+        <ul className="space-y-3">
+          {messages.map((msg, idx) => (
+            <li key={idx} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <div className={`max-w-[80%] rounded px-3 py-2 text-sm ${msg.sender === 'user' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-800'}`}>
+                {msg.text}
               </div>
-              <div onClick={() => setInput('Write a short story about a robot who discovers music')} className="bg-white p-4 rounded-xl border border-gray-200 cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
-                <p className="font-semibold text-gray-700">Write a short story</p>
-                <p className="text-sm text-gray-500">about a robot and music</p>
-              </div>
-            </div>
-          </div>
-        ) : (
-          // Chat messages container
-          <div className="flex-1 overflow-y-auto space-y-4 pb-4" ref={chatContainerRef}>
-            {messages?.map((message, index) => {
-              // Extract message details safely
-              const sender = message?.sender;
-              const text = message?.text ?? message?.content ?? '';
-              const isUser = sender === 'user';
-              const isModel = sender === 'model' || sender === 'bot';
-              
-              // Debug message structure
-              console.log(`[ChatInterface] Rendering message ${index}:`, {
-                sender,
-                hasText: !!text,
-                length: text.length
-              });
-
-              return (
-                <div key={index} className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-xl p-3 rounded-2xl ${isUser ? 'bg-indigo-500 text-white' : 'bg-white border border-gray-200 text-gray-800'}`}>
-                    {isModel ? (
-                      <ReactMarkdown remarkPlugins={[remarkGfm]} className="prose max-w-none">
-                        {text}
-                      </ReactMarkdown>
-                    ) : (
-                      text
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-            
-            {/* Loading indicator */}
-            {loading && (
-              <div className="flex justify-start">
-                <div className="p-3 rounded-2xl bg-white border border-gray-200">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse [animation-delay:0.2s]"></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse [animation-delay:0.4s]"></div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Chat History (uses messages state) */}
-        <div className="flex-1 overflow-y-auto space-y-4 pb-4" ref={chatContainerRef}>
-          {messages && messages.length > 0 && messages.map((message, index) => {
-            // Extract message details safely
-            const sender = message?.sender;
-            const text = message?.text ?? message?.content ?? '';
-            const isUser = sender === 'user';
-            const isModel = sender === 'model' || sender === 'bot';
-            
-            // Debug message structure
-            console.log(`[ChatInterface] Rendering message ${index}:`, {
-              sender,
-              hasText: !!text,
-              length: text.length
-            });
-
-            return (
-              <div key={index} className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-xl p-3 rounded-2xl ${isUser ? 'bg-indigo-500 text-white' : 'bg-white border border-gray-200 text-gray-800'}`}>
-                  {isModel ? (
-                    <ReactMarkdown remarkPlugins={[remarkGfm]} className="prose max-w-none">
-                      {text}
-                    </ReactMarkdown>
-                  ) : (
-                    text
-                  )}
-                </div>
-              </div>
-            );
-          })}
-          
-          {/* Loading Indicator (uses your 'loading' state) */}
-          {loading && (
-            <div className="flex justify-start">
-              <div className="p-3 rounded-2xl bg-white border border-gray-200">
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div>
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse [animation-delay:0.2s]"></div>
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse [animation-delay:0.4s]"></div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Fixed chat input bar at bottom */}
-        <div className="mt-auto pt-2">
-          <form onSubmit={(e) => { e.preventDefault(); handleSend(); }}>
-            <div className="flex items-center bg-white rounded-xl p-2 shadow-lg border border-gray-200 transition-all duration-300 focus-within:ring-2 focus-within:ring-indigo-400">
-              <input
-                type="text"
-                className="w-full bg-transparent text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-0 px-3"
-                placeholder="Message Unmute AI..."
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                disabled={loading || !initialized}
-              />
-              <button
-                type="submit"
-                className="p-2 rounded-lg bg-indigo-500 text-white hover:bg-indigo-600 disabled:bg-gray-300 transition-colors"
-                disabled={loading || !input.trim() || !initialized}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5 12 3m0 0 7.5 7.5M12 3v18" />
-                </svg>
-              </button>
-            </div>
-          </form>
-        </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div className="flex gap-2">
+        <input 
+          type="text" 
+          value={input} 
+          onChange={(e) => setInput(e.target.value)} 
+          onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), handleSend())}
+          placeholder={t('chat_input_placeholder')} 
+          className="flex-1 rounded border border-gray-300 px-3 py-2"
+        />
+        <button 
+          onClick={handleSend}
+          className="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+        >
+          {t('chat_send_button')}
+        </button>
       </div>
     </div>
   );
@@ -326,7 +115,7 @@ const DashboardLayout = ({ children, user }) => {
   return (
     <div className="flex min-h-screen">
       {shouldShowSidebar && <Sidebar />}
-      <div className={`flex-1 bg-gray-100 ${shouldShowSidebar ? 'ml-64' : ''} flex flex-col overflow-hidden`}>
+      <div className={`flex-1 bg-gray-100 ${shouldShowSidebar ? 'ml-64' : ''}`}>
         {children}
       </div>
     </div>
@@ -337,16 +126,11 @@ function App() {
   const { t, i18n } = useTranslation();
   const [user, setUser] = useState(null);
   const [userId, setUserId] = useState(null);
-  const [authChecked, setAuthChecked] = useState(false);
 
-  // Handle authentication state
   useEffect(() => {
-    console.log('[App] Setting up auth listener');
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      console.log('[App] Auth state changed:', { hasUser: !!firebaseUser });
       setUser(firebaseUser);
       setUserId(firebaseUser ? firebaseUser.uid : null);
-      setAuthChecked(true);
     });
     return () => unsubscribe();
   }, []);
@@ -616,111 +400,89 @@ function App() {
 
   // Note: Enter-to-send handling is implemented inside ChatInterface input.
 
-  // Show initial loading state while checking auth
-  if (!authChecked) {
+  if (!user) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="p-3 rounded-2xl bg-white border border-gray-200">
-          <div className="flex items-center space-x-2">
-            <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div>
-            <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse [animation-delay:0.2s]"></div>
-            <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse [animation-delay:0.4s]"></div>
-          </div>
-        </div>
-      </div>
+      <Router>
+        <Routes>
+          <Route path="*" element={<Login setUser={setUser} />} />
+        </Routes>
+      </Router>
     );
   }
 
   return (
     <Router>
-      {!user ? (
-        // Login route when not authenticated
+      <DashboardLayout user={user}>
         <Routes>
-          <Route path="*" element={<Login setUser={setUser} />} />
-        </Routes>
-      ) : (
-        // Main app when authenticated
-        <DashboardLayout user={user}>
-          <Routes>
-            <Route path="/" element={
-              <div className="flex flex-col h-full">
-                {/* Content header */}
-                <header className="bg-white border-b border-gray-200">
-                  <div className="px-6 py-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h1 className="text-2xl font-bold text-gray-800">{t('chatbot_title')}</h1>
-                        <p className="text-gray-600">{t('chatbot_subtitle')}</p>
-                      </div>
-                      <button
-                        onClick={() => setIsBookingModalOpen(true)}
-                        className="rounded-lg bg-green-600 px-6 py-3 text-white font-medium hover:bg-green-700 shadow-lg transition-all duration-300"
-                      >
-                        {t('book_session_button')}
-                      </button>
-                    </div>
-                  </div>
-                </header>
-
-                {/* Main content area */}
-                <div className="flex-1 overflow-hidden">
-                  <ChatInterface user={user} db={db} />
-                </div>
+          <Route path="/" element={
+            <div className="p-6">
+              <div className="mb-6">
+                <h1 className="text-2xl font-bold text-gray-800 mb-2">{t('chatbot_title')}</h1>
+                <p className="text-gray-600">{t('chatbot_subtitle')}</p>
               </div>
-            } />
-            <Route path="/admin" element={<AdminDashboard user={user} db={db} />} />
-            <Route path="/assess" element={
-              <div className="p-6">
-                <h1 className="text-2xl font-bold text-gray-800 mb-4">Assessment Center</h1>
-                <p className="text-gray-600">Coming soon...</p>
+              <ChatInterface user={user} db={db} />
+              <div className="mt-6">
+                <button
+                  onClick={() => setIsBookingModalOpen(true)}
+                  className="rounded bg-green-600 px-6 py-3 text-white font-medium hover:bg-green-700"
+                >
+                  {t('book_session_button')}
+                </button>
               </div>
-            } />
-            <Route path="/track" element={
-              <div className="p-6">
-                <h1 className="text-2xl font-bold text-gray-800 mb-4">Progress Tracking</h1>
-                <p className="text-gray-600">Coming soon...</p>
-              </div>
-            } />
-            <Route path="/resources" element={<ResourceHub />} />
-            <Route path="/community" element={
-              <div className="p-6">
-                <h1 className="text-2xl font-bold text-gray-800 mb-4">Community</h1>
-                <p className="text-gray-600">Coming soon...</p>
-              </div>
-            } />
-            <Route path="/settings" element={
-              <div className="p-6">
-                <h1 className="text-2xl font-bold text-gray-800 mb-4">Settings</h1>
-                <div className="bg-white rounded-lg shadow p-6">
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Language</label>
-                    <select
-                      value={i18n.language}
-                      onChange={(e) => i18n.changeLanguage(e.target.value)}
-                      className="rounded border border-gray-300 px-3 py-2 text-sm"
-                    >
-                      <option value="en">English</option>
-                      <option value="hi">हिंदी (Hindi)</option>
-                      <option value="bn">বাংলা (Bengali)</option>
-                      <option value="mr">मराठी (Marathi)</option>
-                      <option value="ta">தமிழ் (Tamil)</option>
-                      <option value="te">తెలుగు (Telugu)</option>
-                    </select>
-                  </div>
-                  <button
-                    onClick={() => signOut(auth)}
-                    className="rounded bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+              {isBookingModalOpen && <BookingModal />}
+              {showSuccessPopup && <SuccessPopup />}
+            </div>
+          } />
+          <Route path="/admin" element={<AdminDashboard user={user} db={db} />} />
+          <Route path="/assess" element={
+            <div className="p-6">
+              <h1 className="text-2xl font-bold text-gray-800 mb-4">Assessment Center</h1>
+              <p className="text-gray-600">Coming soon...</p>
+            </div>
+          } />
+          <Route path="/track" element={
+            <div className="p-6">
+              <h1 className="text-2xl font-bold text-gray-800 mb-4">Progress Tracking</h1>
+              <p className="text-gray-600">Coming soon...</p>
+            </div>
+          } />
+          <Route path="/resources" element={<ResourceHub />} />
+          <Route path="/community" element={
+            <div className="p-6">
+              <h1 className="text-2xl font-bold text-gray-800 mb-4">Community</h1>
+              <p className="text-gray-600">Coming soon...</p>
+            </div>
+          } />
+          <Route path="/settings" element={
+            <div className="p-6">
+              <h1 className="text-2xl font-bold text-gray-800 mb-4">Settings</h1>
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Language</label>
+                  <select
+                    value={i18n.language}
+                    onChange={(e) => i18n.changeLanguage(e.target.value)}
+                    className="rounded border border-gray-300 px-3 py-2 text-sm"
                   >
-                    Logout
-                  </button>
+                    <option value="en">English</option>
+                    <option value="hi">हिंदी (Hindi)</option>
+                    <option value="bn">বাংলা (Bengali)</option>
+                    <option value="mr">मराठी (Marathi)</option>
+                    <option value="ta">தமிழ் (Tamil)</option>
+                    <option value="te">తెలుగు (Telugu)</option>
+                  </select>
                 </div>
+                <button
+                  onClick={() => signOut(auth)}
+                  className="rounded bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+                >
+                  Logout
+                </button>
               </div>
-            } />
-          </Routes>
-          {isBookingModalOpen && <BookingModal />}
-          {showSuccessPopup && <SuccessPopup />}
-        </DashboardLayout>
-      )}
+            </div>
+          } />
+        </Routes>
+      </DashboardLayout>
     </Router>
   );
 }
