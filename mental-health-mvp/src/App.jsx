@@ -326,7 +326,7 @@ const DashboardLayout = ({ children, user }) => {
   return (
     <div className="flex min-h-screen">
       {shouldShowSidebar && <Sidebar />}
-      <div className={`flex-1 bg-gray-100 ${shouldShowSidebar ? 'ml-64' : ''}`}>
+      <div className={`flex-1 bg-gray-100 ${shouldShowSidebar ? 'ml-64' : ''} flex flex-col overflow-hidden`}>
         {children}
       </div>
     </div>
@@ -337,11 +337,16 @@ function App() {
   const { t, i18n } = useTranslation();
   const [user, setUser] = useState(null);
   const [userId, setUserId] = useState(null);
+  const [authChecked, setAuthChecked] = useState(false);
 
+  // Handle authentication state
   useEffect(() => {
+    console.log('[App] Setting up auth listener');
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      console.log('[App] Auth state changed:', { hasUser: !!firebaseUser });
       setUser(firebaseUser);
       setUserId(firebaseUser ? firebaseUser.uid : null);
+      setAuthChecked(true);
     });
     return () => unsubscribe();
   }, []);
@@ -611,89 +616,111 @@ function App() {
 
   // Note: Enter-to-send handling is implemented inside ChatInterface input.
 
-  if (!user) {
+  // Show initial loading state while checking auth
+  if (!authChecked) {
     return (
-      <Router>
-        <Routes>
-          <Route path="*" element={<Login setUser={setUser} />} />
-        </Routes>
-      </Router>
+      <div className="flex h-screen items-center justify-center">
+        <div className="p-3 rounded-2xl bg-white border border-gray-200">
+          <div className="flex items-center space-x-2">
+            <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div>
+            <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse [animation-delay:0.2s]"></div>
+            <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse [animation-delay:0.4s]"></div>
+          </div>
+        </div>
+      </div>
     );
   }
 
   return (
     <Router>
-      <DashboardLayout user={user}>
+      {!user ? (
+        // Login route when not authenticated
         <Routes>
-          <Route path="/" element={
-            <div className="flex-1 h-full">
-              <div className="mb-6 px-6">
-                <h1 className="text-2xl font-bold text-gray-800 mb-2">{t('chatbot_title')}</h1>
-                <p className="text-gray-600">{t('chatbot_subtitle')}</p>
-              </div>
-              <ChatInterface user={user} db={db} />
-              <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-10">
-                <button
-                  onClick={() => setIsBookingModalOpen(true)}
-                  className="rounded bg-green-600 px-6 py-3 text-white font-medium hover:bg-green-700 shadow-lg"
-                >
-                  {t('book_session_button')}
-                </button>
-              </div>
-              {isBookingModalOpen && <BookingModal />}
-              {showSuccessPopup && <SuccessPopup />}
-            </div>
-          } />
-          <Route path="/admin" element={<AdminDashboard user={user} db={db} />} />
-          <Route path="/assess" element={
-            <div className="p-6">
-              <h1 className="text-2xl font-bold text-gray-800 mb-4">Assessment Center</h1>
-              <p className="text-gray-600">Coming soon...</p>
-            </div>
-          } />
-          <Route path="/track" element={
-            <div className="p-6">
-              <h1 className="text-2xl font-bold text-gray-800 mb-4">Progress Tracking</h1>
-              <p className="text-gray-600">Coming soon...</p>
-            </div>
-          } />
-          <Route path="/resources" element={<ResourceHub />} />
-          <Route path="/community" element={
-            <div className="p-6">
-              <h1 className="text-2xl font-bold text-gray-800 mb-4">Community</h1>
-              <p className="text-gray-600">Coming soon...</p>
-            </div>
-          } />
-          <Route path="/settings" element={
-            <div className="p-6">
-              <h1 className="text-2xl font-bold text-gray-800 mb-4">Settings</h1>
-              <div className="bg-white rounded-lg shadow p-6">
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Language</label>
-                  <select
-                    value={i18n.language}
-                    onChange={(e) => i18n.changeLanguage(e.target.value)}
-                    className="rounded border border-gray-300 px-3 py-2 text-sm"
-                  >
-                    <option value="en">English</option>
-                    <option value="hi">हिंदी (Hindi)</option>
-                    <option value="bn">বাংলা (Bengali)</option>
-                    <option value="mr">मराठी (Marathi)</option>
-                    <option value="ta">தமிழ் (Tamil)</option>
-                    <option value="te">తెలుగు (Telugu)</option>
-                  </select>
-                </div>
-                <button
-                  onClick={() => signOut(auth)}
-                  className="rounded bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
-                >
-                  Logout
-                </button>
-              </div>
-            </div>
-          } />
+          <Route path="*" element={<Login setUser={setUser} />} />
         </Routes>
-      </DashboardLayout>
+      ) : (
+        // Main app when authenticated
+        <DashboardLayout user={user}>
+          <Routes>
+            <Route path="/" element={
+              <div className="flex flex-col h-full">
+                {/* Content header */}
+                <header className="bg-white border-b border-gray-200">
+                  <div className="px-6 py-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h1 className="text-2xl font-bold text-gray-800">{t('chatbot_title')}</h1>
+                        <p className="text-gray-600">{t('chatbot_subtitle')}</p>
+                      </div>
+                      <button
+                        onClick={() => setIsBookingModalOpen(true)}
+                        className="rounded-lg bg-green-600 px-6 py-3 text-white font-medium hover:bg-green-700 shadow-lg transition-all duration-300"
+                      >
+                        {t('book_session_button')}
+                      </button>
+                    </div>
+                  </div>
+                </header>
+
+                {/* Main content area */}
+                <div className="flex-1 overflow-hidden">
+                  <ChatInterface user={user} db={db} />
+                </div>
+              </div>
+            } />
+            <Route path="/admin" element={<AdminDashboard user={user} db={db} />} />
+            <Route path="/assess" element={
+              <div className="p-6">
+                <h1 className="text-2xl font-bold text-gray-800 mb-4">Assessment Center</h1>
+                <p className="text-gray-600">Coming soon...</p>
+              </div>
+            } />
+            <Route path="/track" element={
+              <div className="p-6">
+                <h1 className="text-2xl font-bold text-gray-800 mb-4">Progress Tracking</h1>
+                <p className="text-gray-600">Coming soon...</p>
+              </div>
+            } />
+            <Route path="/resources" element={<ResourceHub />} />
+            <Route path="/community" element={
+              <div className="p-6">
+                <h1 className="text-2xl font-bold text-gray-800 mb-4">Community</h1>
+                <p className="text-gray-600">Coming soon...</p>
+              </div>
+            } />
+            <Route path="/settings" element={
+              <div className="p-6">
+                <h1 className="text-2xl font-bold text-gray-800 mb-4">Settings</h1>
+                <div className="bg-white rounded-lg shadow p-6">
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Language</label>
+                    <select
+                      value={i18n.language}
+                      onChange={(e) => i18n.changeLanguage(e.target.value)}
+                      className="rounded border border-gray-300 px-3 py-2 text-sm"
+                    >
+                      <option value="en">English</option>
+                      <option value="hi">हिंदी (Hindi)</option>
+                      <option value="bn">বাংলা (Bengali)</option>
+                      <option value="mr">मराठी (Marathi)</option>
+                      <option value="ta">தமிழ் (Tamil)</option>
+                      <option value="te">తెలుగు (Telugu)</option>
+                    </select>
+                  </div>
+                  <button
+                    onClick={() => signOut(auth)}
+                    className="rounded bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+                  >
+                    Logout
+                  </button>
+                </div>
+              </div>
+            } />
+          </Routes>
+          {isBookingModalOpen && <BookingModal />}
+          {showSuccessPopup && <SuccessPopup />}
+        </DashboardLayout>
+      )}
     </Router>
   );
 }
