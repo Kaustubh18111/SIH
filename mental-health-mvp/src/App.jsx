@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy } from "react";
+import { useState, useEffect, useRef, lazy } from "react";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
@@ -28,6 +28,7 @@ const ChatInterface = ({ user, db }) => {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const chatContainerRef = useRef(null);
 
   useEffect(() => {
     if (user && db) {
@@ -80,6 +81,13 @@ const ChatInterface = ({ user, db }) => {
     }
   };
 
+  // Auto-scroll to bottom whenever messages or loading changes
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [messages, loading]);
+
   // Futuristic light-mode chat UI integrated with existing state
   return (
     <div className="h-full w-full flex flex-col p-4">
@@ -109,20 +117,26 @@ const ChatInterface = ({ user, db }) => {
         )}
 
         {/* Chat History (uses your 'messages' state) */}
-        <div className="flex-1 overflow-y-auto space-y-4 pb-4">
-          {messages.map((message, index) => (
-            <div key={index} className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-xl p-3 rounded-2xl ${message.sender === 'user' ? 'bg-indigo-500 text-white' : 'bg-white border border-gray-200 text-gray-800'}`}>
-                {message.sender !== 'user' ? (
-                  <ReactMarkdown remarkPlugins={[remarkGfm]} className="prose max-w-none">
-                    {message.text}
-                  </ReactMarkdown>
-                ) : (
-                  message.text
-                )}
+        <div className="flex-1 overflow-y-auto space-y-4 pb-4" ref={chatContainerRef}>
+          {Array.isArray(messages) && messages.map((message, index) => {
+            const sender = message?.sender;
+            const text = message?.text ?? message?.content ?? '';
+            const isUser = sender === 'user';
+            const isModel = sender === 'model' || sender === 'bot';
+            return (
+              <div key={index} className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-xl p-3 rounded-2xl ${isUser ? 'bg-indigo-500 text-white' : 'bg-white border border-gray-200 text-gray-800'}`}>
+                  {isModel ? (
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} className="prose max-w-none">
+                      {text}
+                    </ReactMarkdown>
+                  ) : (
+                    text
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
           
           {/* Loading Indicator (uses your 'loading' state) */}
           {loading && (
