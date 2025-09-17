@@ -17,7 +17,8 @@ i18n
     },
     
     backend: {
-      loadPath: './locales/{{lng}}/translation.json',
+      // Use absolute path so it works on any route (e.g., /admin, /settings)
+      loadPath: '/locales/{{lng}}/translation.json',
     },
     
     detection: {
